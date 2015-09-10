@@ -1,0 +1,118 @@
+08/14/2015 15:31:01 - Running PrimeNetEncoder in Console Mode
+08/14/2015 15:31:01 - PrimeNetEncoder Version: 1.0.1
+08/14/2015 15:31:01 - Starting tunner threads
+08/14/2015 15:31:01 - Starting Debug Console
+08/14/2015 15:34:12 - Running PrimeNetEncoder in Console Mode
+08/14/2015 15:34:12 - PrimeNetEncoder Version: 1.0.1
+08/14/2015 15:34:12 - Starting tunner threads
+08/14/2015 15:34:12 - Starting Debug Console
+08/14/2015 15:34:57 - Running PrimeNetEncoder in Console Mode
+08/14/2015 15:34:57 - PrimeNetEncoder Version: 1.0.1
+08/14/2015 15:34:57 - Starting tunner threads
+08/14/2015 15:34:57 - Starting Debug Console
+08/14/2015 15:37:33 - Running PrimeNetEncoder in Console Mode
+08/14/2015 15:37:33 - PrimeNetEncoder Version: 1.0.1
+08/14/2015 15:37:34 - Starting tunner threads
+08/14/2015 15:37:34 - Starting Debug Console
+08/14/2015 15:39:47 - Running PrimeNetEncoder in Console Mode
+08/14/2015 15:39:47 - PrimeNetEncoder Version: 1.0.1
+08/14/2015 15:39:47 - Starting tunner threads
+08/14/2015 15:39:47 - Starting Debug Console
+08/14/2015 15:44:17 - Running PrimeNetEncoder in Console Mode
+08/14/2015 15:44:17 - PrimeNetEncoder Version: 1.0.1
+08/14/2015 15:44:17 - Starting tunner threads
+08/14/2015 15:44:17 - Starting Debug Console
+08/14/2015 15:45:22 - Running PrimeNetEncoder in Console Mode
+08/14/2015 15:45:22 - PrimeNetEncoder Version: 1.0.1
+08/14/2015 15:45:23 - Starting tunner threads
+08/14/2015 15:45:23 - Starting Debug Console
+08/14/2015 15:48:42 - Running PrimeNetEncoder in Console Mode
+08/14/2015 15:48:42 - PrimeNetEncoder Version: 1.0.1
+08/14/2015 15:48:42 - Starting tunner threads
+08/14/2015 15:48:42 - Starting Debug Console
+08/14/2015 16:01:21 - Running PrimeNetEncoder in Console Mode
+08/14/2015 16:01:21 - PrimeNetEncoder Version: 1.0.1
+08/14/2015 16:01:22 - Starting tunner threads
+08/14/2015 16:01:22 - Starting Debug Console
+08/14/2015 16:03:00 - Running PrimeNetEncoder in Console Mode
+08/14/2015 16:03:00 - PrimeNetEncoder Version: 1.0.1
+08/14/2015 16:03:00 - Starting tunner threads
+08/14/2015 16:03:01 - Starting Debug Console
+08/14/2015 16:13:53 - Running PrimeNetEncoder in Console Mode
+08/14/2015 16:13:53 - PrimeNetEncoder Version: 1.0.1
+08/14/2015 16:13:54 - Starting tunner threads
+08/14/2015 16:13:54 - Starting Debug Console
+08/14/2015 16:14:41 - Running PrimeNetEncoder in Console Mode
+08/14/2015 16:14:41 - PrimeNetEncoder Version: 1.0.1
+08/14/2015 16:14:42 - Starting tunner threads
+08/14/2015 16:14:42 - Starting Debug Console
+08/14/2015 16:24:38 - Running PrimeNetEncoder in Console Mode
+08/14/2015 16:24:38 - PrimeNetEncoder Version: 1.0.1
+08/14/2015 16:24:38 - Starting tunner threads
+08/14/2015 16:24:38 - Starting Debug Console
+08/14/2015 16:25:50 - Running PrimeNetEncoder in Console Mode
+08/14/2015 16:25:50 - PrimeNetEncoder Version: 1.0.1
+08/14/2015 16:25:50 - Starting tunner threads
+08/14/2015 16:25:50 - Starting Debug Console
+08/19/2015 20:48:43 - Running PrimeNetEncoder in Console Mode
+08/19/2015 20:48:43 - PrimeNetEncoder Version: 1.1.1
+08/19/2015 20:48:44 - Starting tunner threads
+08/19/2015 20:48:44 - Starting Debug Console
+08/19/2015 20:53:06 - Running PrimeNetEncoder in Console Mode
+08/19/2015 20:53:06 - PrimeNetEncoder Version: 1.1.1
+08/19/2015 20:53:06 - Starting tunner threads
+08/19/2015 20:53:06 - Starting Debug Console
+08/19/2015 20:59:55 - Running PrimeNetEncoder in Console Mode
+08/19/2015 20:59:55 - PrimeNetEncoder Version: 1.1.1
+08/19/2015 20:59:55 - Starting tunner threads
+08/19/2015 20:59:55 - Starting Debug Console
+08/19/2015 21:59:06 - Running PrimeNetEncoder in Console Mode
+08/19/2015 21:59:06 - PrimeNetEncoder Version: 1.1.1
+08/19/2015 21:59:06 - Starting tunner threads
+08/19/2015 21:59:06 - Starting Debug Console
+08/19/2015 22:02:25 - Running PrimeNetEncoder in Console Mode
+08/19/2015 22:02:25 - PrimeNetEncoder Version: 1.1.1
+08/19/2015 22:02:26 - Starting tunner threads
+08/19/2015 22:02:26 - Starting Debug Console
+09/03/2015 10:59:44 - Running PrimeNetEncoder in Console Mode
+09/03/2015 10:59:44 - PrimeNetEncoder Version: 1.1.1
+09/03/2015 10:59:44 - Starting tunner threads
+09/03/2015 10:59:44 - Starting Debug Console
+09/08/2015 21:40:40 - Running PrimeNetEncoder in Console Mode
+09/08/2015 21:40:40 - PrimeNetEncoder Version: 1.2.0
+09/08/2015 21:40:40 - Starting tunner threads
+09/08/2015 21:40:40 - Starting Debug Console
+09/08/2015 21:48:54 - Running PrimeNetEncoder in Console Mode
+09/08/2015 21:48:54 - PrimeNetEncoder Version: 1.2.0
+09/08/2015 21:48:54 - Starting tunner threads
+09/08/2015 21:48:54 - Starting Debug Console
+09/08/2015 21:50:14 - Running PrimeNetEncoder in Console Mode
+09/08/2015 21:50:14 - PrimeNetEncoder Version: 1.2.0
+09/08/2015 21:53:03 - Running PrimeNetEncoder in Console Mode
+09/08/2015 21:53:03 - PrimeNetEncoder Version: 1.2.0
+09/08/2015 21:53:03 - Starting tunner threads
+09/08/2015 21:53:03 - Starting Debug Console
+09/08/2015 22:09:47 - Running PrimeNetEncoder in Console Mode
+09/08/2015 22:09:47 - PrimeNetEncoder Version: 1.2.0
+09/08/2015 22:09:48 - Starting tunner threads
+09/08/2015 22:09:48 - Starting Debug Console
+09/08/2015 22:13:21 - Running PrimeNetEncoder in Console Mode
+09/08/2015 22:13:21 - PrimeNetEncoder Version: 1.2.0
+09/08/2015 22:13:22 - Starting tunner threads
+09/08/2015 22:13:22 - Starting Debug Console
+09/09/2015 20:31:25 - Running PrimeNetEncoder in Console Mode
+09/09/2015 20:31:25 - PrimeNetEncoder Version: 1.2.0
+09/09/2015 20:31:25 - Starting tunner threads
+09/09/2015 20:31:25 - Starting Debug Console
+09/09/2015 20:33:39 - Running PrimeNetEncoder in Console Mode
+09/09/2015 20:33:39 - PrimeNetEncoder Version: 1.2.0
+09/09/2015 20:33:40 - Starting tunner threads
+09/09/2015 20:33:40 - Starting Debug Console
+09/09/2015 20:36:47 - Running PrimeNetEncoder in Console Mode
+09/09/2015 20:36:47 - PrimeNetEncoder Version: 1.2.0
+09/09/2015 20:36:47 - Starting tunner threads
+09/09/2015 20:36:47 - Starting Debug Console
+09/09/2015 20:37:33 - Running PrimeNetEncoder in Console Mode
+09/09/2015 20:37:33 - PrimeNetEncoder Version: 1.2.0
+09/09/2015 20:37:33 - Starting tunner threads
+09/09/2015 20:37:33 - Starting Debug Console

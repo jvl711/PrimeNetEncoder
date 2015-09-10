@@ -1,0 +1,35 @@
+08/14/2015 16:01:22 - Starting discovery thread
+08/14/2015 16:01:39 - Sending discovery response packet for Tuner Thread-1
+08/14/2015 16:01:39 - Sending discovery response packet for Tuner Thread-2
+08/14/2015 16:01:39 - Sending discovery response packet for Tuner Thread-3
+08/14/2015 16:03:01 - Starting discovery thread
+08/14/2015 16:03:06 - Sending discovery response packet for Tuner HDHomeRun Prime 131C3300-0
+08/14/2015 16:03:06 - Sending discovery response packet for Tuner HDHomeRun Prime Tuner 131C3300-1
+08/14/2015 16:03:06 - Sending discovery response packet for Tuner HDHomeRun Prime Tuner 131C3300-2
+08/14/2015 16:13:54 - Starting discovery thread
+08/14/2015 16:14:42 - Starting discovery thread
+08/14/2015 16:14:48 - Sending discovery response packet for Tuner HDHomeRun Prime 131C3300-0
+08/14/2015 16:14:48 - Sending discovery response packet for Tuner HDHomeRun Prime Tuner 131C3300-1
+08/14/2015 16:14:48 - Sending discovery response packet for Tuner HDHomeRun Prime Tuner 131C3300-2
+08/14/2015 16:24:38 - Starting discovery thread
+08/14/2015 16:24:45 - Sending discovery response packet for Tuner HDHomeRun Prime 131C3300-0
+08/14/2015 16:24:45 - Sending discovery response packet for Tuner HDHomeRun Prime Tuner 131C3300-1
+08/14/2015 16:24:45 - Sending discovery response packet for Tuner HDHomeRun Prime Tuner 131C3300-2
+08/14/2015 16:25:50 - Starting discovery thread
+08/14/2015 16:25:57 - Sending discovery response packet for Tuner HDHomeRun Prime 131C3300-0
+08/14/2015 16:25:57 - Sending discovery response packet for Tuner HDHomeRun Prime Tuner 131C3300-1
+08/14/2015 16:25:57 - Sending discovery response packet for Tuner HDHomeRun Prime Tuner 131C3300-2
+08/14/2015 16:51:10 - Sending discovery response packet for Tuner HDHomeRun Prime 131C3300-0
+08/14/2015 16:51:10 - Sending discovery response packet for Tuner HDHomeRun Prime Tuner 131C3300-1
+08/14/2015 16:51:10 - Sending discovery response packet for Tuner HDHomeRun Prime Tuner 131C3300-2
+08/14/2015 16:54:09 - Sending discovery response packet for Tuner HDHomeRun Prime 131C3300-0
+08/14/2015 16:54:09 - Sending discovery response packet for Tuner HDHomeRun Prime Tuner 131C3300-1
+08/14/2015 16:54:09 - Sending discovery response packet for Tuner HDHomeRun Prime Tuner 131C3300-2
+08/19/2015 20:48:44 - Starting discovery thread
+08/19/2015 20:48:54 - Error in discovery thread: Address already in use: Cannot bind
+08/19/2015 20:48:54 - Exiting discovery thread
+08/19/2015 20:53:06 - Discovery thread starting
+08/19/2015 20:59:55 - Discovery thread starting
+08/19/2015 21:00:05 - Discovery thread exiting
+08/19/2015 21:00:15 - Discovery thread exiting
+08/19/2015 21:00:25 - Discovery thread exiting
