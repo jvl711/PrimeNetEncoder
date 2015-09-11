@@ -423,6 +423,9 @@ public class TunerOutput extends Thread
                 DatagramSocket socket = new DatagramSocket(this.udpPort);
                 DatagramPacket packet = new DatagramPacket(new byte[bufferSize], bufferSize);
                 
+                //Set revice buffer to max size.
+                socket.setReceiveBufferSize(65535);
+                
                 socket.receive(packet);
 
                 while ( packet.getLength() > 0 && this.keepProcessing) 
