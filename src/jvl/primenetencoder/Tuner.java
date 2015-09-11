@@ -11,6 +11,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.InetAddress;
 import java.io.File;
+import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -38,6 +39,11 @@ public class Tuner extends Thread
     private String localIPAddress;
     private String remoteIPAddress;
     private String logName;
+    
+    /*
+    * Variables for tuner locking
+    */
+    private long lockKey = -1;
     
     /*
     * Variables for stream transfer
@@ -278,21 +284,19 @@ public class Tuner extends Thread
 
         try
         {
-            //TODO:  Test calling switch before starting ffmpeg
-            PrimeNetEncoder.writeLogln("Switch channel: " + channel, this.logName);
-            String[] swichChannelCmd = {this.hdhomerunconfigPath, this.id, "set" , "/tuner" + this.tunerNumber + "/vchannel", channel};
-            Process channelChangeProcess = Runtime.getRuntime().exec(swichChannelCmd);
-            channelChangeProcess.waitFor();
-
-     
-            PrimeNetEncoder.writeLogln("Send stream to UDP port: " + this.transcoderPort, this.logName);
-            channelChangeProcess = Runtime.getRuntime().exec(swichChannelCmd);
-            channelChangeProcess.waitFor();
-            String[] sendStreamCmd = {this.hdhomerunconfigPath, this.id, "set" ,"/tuner" + this.tunerNumber + "/target",  "udp://" + this.localIPAddress + ":" + this.transcoderPort};
-            Runtime.getRuntime().exec(sendStreamCmd);
+            //Check to see if the tuner is locked
+            PrimeNetEncoder.writeLogln("Checking to see if the tuner is locked.", logName);
+            if(this.isTunerLocked())
+            {
+                PrimeNetEncoder.writeLogln("Tuner is locked.  Force unlocking the tuner.", logName);
+                //For right now I am always going to force unlock.
+                this.clearTunerLock(true);
+            }
             
-            //TODO: Use stdin to send data to ffmpeg
-            
+            this.setTunerLock();
+            this.setTunerChannel(channel);
+            this.setTunerStream();
+        
             /*
              * Unless doing direct stream, start the ffmpeg process.  ffmpeg
              * will either do a stream copy of a transcode
@@ -336,8 +340,6 @@ public class Tuner extends Thread
                 this.tunerOutput.start();
             }
             
-
-
             //Give a little time for the port to open
             if(!this.directStream)
             {
@@ -361,6 +363,53 @@ public class Tuner extends Thread
             this.recordingQuality = quality;
         }
         
+    }
+    
+    private void stopRecording()
+    {
+        PrimeNetEncoder.writeLogln("-------------------------------------------------------------------------------", this.logName);
+        PrimeNetEncoder.writeLogln("Stopping Recording: " + this.getTunerId()+ " " + this.getTunerNumber(), this.logName);
+        PrimeNetEncoder.writeLogln("-------------------------------------------------------------------------------", this.logName);
+        
+        if(isRecording())
+        {
+            try
+            {
+                if(this.mediaServerTransfer)
+                {
+                    PrimeNetEncoder.writeLogln("Stopping the TunerOutput thread", this.logName);
+                    this.tunerOutput.stopProcessing();
+                    
+                }
+                
+                this.clearTunerChannel();
+                this.clearTunerLock(true); //Do forced to be on the safe side
+
+		if(!this.directStream)
+                {
+                    PrimeNetEncoder.writeLogln("Stopping the encoder process", this.logName);
+                    this.encoderProcess.destroy(); //Forcibly();
+
+                    PrimeNetEncoder.writeLogln("waiting for the process to stop", this.logName);
+                    this.encoderProcess.waitFor();
+                }
+                
+                PrimeNetEncoder.writeLogln("Recording stopped", this.logName);
+                
+            }
+            catch(Exception ex)
+            {
+                PrimeNetEncoder.writeLogln("Unexpected Error Stopping Recording: " + ex.getMessage(), this.logName);
+                ex.printStackTrace();
+            }
+            finally
+            {
+                this.recordingFile = "";
+                this.recordingChannel = "";
+                this.recordingQuality = "";
+                recording = false;
+            }
+        }                
     }
     
     private String[] getTranscodeCmd(String input, String output)
@@ -404,59 +453,175 @@ public class Tuner extends Thread
         
         return transcoderCmd;
     }
-    
-    private void stopRecording()
+
+    private void setTunerStream() throws IOException, InterruptedException
     {
-        PrimeNetEncoder.writeLogln("-------------------------------------------------------------------------------", this.logName);
-        PrimeNetEncoder.writeLogln("Stopping Recording: " + this.getTunerId()+ " " + this.getTunerNumber(), this.logName);
-        PrimeNetEncoder.writeLogln("-------------------------------------------------------------------------------", this.logName);
-        
-        if(isRecording())
+        String[] sendStreamCmd;
+                
+        if(this.lockKey != -1)
         {
-            try
-            {
-                if(this.mediaServerTransfer)
-                {
-                    PrimeNetEncoder.writeLogln("Stopping the TunerOutput thread", this.logName);
-                    this.tunerOutput.stopProcessing();
-                    
-                }
+            PrimeNetEncoder.writeLogln("Send stream to UDP port: " + this.transcoderPort, this.logName);
+            PrimeNetEncoder.writeLogln("Using Lockkey: " + this.lockKey, this.logName);
+            sendStreamCmd = new String[] {this.hdhomerunconfigPath, this.id, "key", this.lockKey + "","set" ,"/tuner" + this.tunerNumber + "/target",  "udp://" + this.localIPAddress + ":" + this.transcoderPort};
+        }    
+        else
+        {
+            PrimeNetEncoder.writeLogln("Send stream to UDP port: " + this.transcoderPort, this.logName);
+            sendStreamCmd = new String[] {this.hdhomerunconfigPath, this.id, "set" ,"/tuner" + this.tunerNumber + "/target",  "udp://" + this.localIPAddress + ":" + this.transcoderPort};        
+        }
+        
+        Process sendStreamProcess = Runtime.getRuntime().exec(sendStreamCmd);
+        sendStreamProcess.waitFor();    
+    }
+    
+    private void setTunerChannel(String channel) throws IOException, InterruptedException
+    {
+        String[] swichChannelCmd;
                 
-                PrimeNetEncoder.writeLogln("Stopping the stream", this.logName);
-                String[] swichChannelCmd = {this.hdhomerunconfigPath, this.id, "set" , "/tuner" + this.tunerNumber + "/vchannel", "none"};
-                Process channelChangeProcess = Runtime.getRuntime().exec(swichChannelCmd);
-                channelChangeProcess.waitFor();
-
-		if(!this.directStream)
-                {
-                    //PrimeNetEncoder.writeLogln("Closing input/output streams", this.logName);
-                    //this.encoderProcess.getOutputStream().close(); 
-                    //this.encoderProcess.getInputStream().close(); 
-                    //this.encoderProcess.getErrorStream().close();
-
-                    PrimeNetEncoder.writeLogln("Stopping the encoder process", this.logName);
-                    this.encoderProcess.destroy(); //Forcibly();
-
-                    PrimeNetEncoder.writeLogln("waiting for the process to stop", this.logName);
-                    this.encoderProcess.waitFor();
-                }
+        if(this.lockKey != -1)
+        {
+            PrimeNetEncoder.writeLogln("Switch channel: " + channel, this.logName);
+            PrimeNetEncoder.writeLogln("Using Lockkey: " + this.lockKey, this.logName);
+            swichChannelCmd = new String[] {this.hdhomerunconfigPath, this.id, "key", this.lockKey + "","set" , "/tuner" + this.tunerNumber + "/vchannel", channel};
+        }
+        else
+        {
+            PrimeNetEncoder.writeLogln("Switch channel: " + channel, this.logName);
+            swichChannelCmd = new String[] {this.hdhomerunconfigPath, this.id, "set" , "/tuner" + this.tunerNumber + "/vchannel", channel};
+        }
+        
+        Process channelChangeProcess = Runtime.getRuntime().exec(swichChannelCmd);
+        channelChangeProcess.waitFor();
+    }
+    
+    private void clearTunerChannel() throws IOException, InterruptedException
+    {
+        String[] swichChannelCmd;
                 
-                PrimeNetEncoder.writeLogln("Recording stopped", this.logName);
-                
-            }
-            catch(Exception ex)
+        if(this.lockKey != -1)
+        {
+            PrimeNetEncoder.writeLogln("Switch channel: none", this.logName);
+            PrimeNetEncoder.writeLogln("Using Lockkey: " + this.lockKey, this.logName);
+            swichChannelCmd = new String[] {this.hdhomerunconfigPath, this.id, "key", this.lockKey + "","set" , "/tuner" + this.tunerNumber + "/vchannel", "none"};
+        }
+        else
+        {
+            PrimeNetEncoder.writeLogln("Switch channel: none", this.logName);
+            swichChannelCmd = new String[] {this.hdhomerunconfigPath, this.id, "set" , "/tuner" + this.tunerNumber + "/vchannel", "none"};
+        }
+        
+        Process channelChangeProcess = Runtime.getRuntime().exec(swichChannelCmd);
+        channelChangeProcess.waitFor();
+        
+    }
+    
+    private void setTunerLock()
+    {
+        Random rand = new Random();
+        long lockkey = rand.nextLong();
+        
+        setTunerLock(lockkey);
+    }
+    
+    private void setTunerLock(long number)
+    {
+        this.lockKey = number;
+        
+        try 
+        {
+            String[] hdhomerunCmd = {this.hdhomerunconfigPath, this.id, "set" , "/tuner" + this.tunerNumber + "/lockkey", number + ""};
+            Process hdhomerunProcess = Runtime.getRuntime().exec(hdhomerunCmd);
+            
+            hdhomerunProcess.waitFor();
+        } 
+        catch (IOException ex) 
+        {
+            System.out.println("Unexpected Error: Error setting lock status from HDHomeRun_config");
+        }
+        catch (InterruptedException ex2)
+        {
+            
+        }
+    }
+    
+    private void clearTunerLock(boolean force)
+    {
+        String value = "none";
+        
+        if(force)
+        {
+            value = "force";
+        }
+        
+        try 
+        {
+            String[] hdhomerunCmd;
+            
+            if(force)
             {
-                PrimeNetEncoder.writeLogln("Unexpected Error Stopping Recording: " + ex.getMessage(), this.logName);
-                ex.printStackTrace();
+                hdhomerunCmd = new String[]{this.hdhomerunconfigPath, this.id, "set" , "/tuner" + this.tunerNumber + "/lockkey", "force"};
             }
-            finally
+            else
             {
-                this.recordingFile = "";
-                this.recordingChannel = "";
-                this.recordingQuality = "";
-                recording = false;
+                hdhomerunCmd = new String[]{this.hdhomerunconfigPath, this.id, "key", this.lockKey + "", "set" , "/tuner" + this.tunerNumber + "/lockkey", "force"};
             }
-        }                
+            
+            Process hdhomerunProcess = Runtime.getRuntime().exec(hdhomerunCmd);
+            
+            hdhomerunProcess.waitFor();
+            this.lockKey = -1;
+        } 
+        catch (IOException ex) 
+        {
+            System.out.println("Unexpected Error: Error clearing lock status from HDHomeRun_config");
+        }
+        catch (InterruptedException ex2)
+        {
+            
+        }
+    }
+    
+    public boolean isTunerLocked()
+    {
+        String lockStatus;
+        
+        try
+        {
+            String[] hdhomerunCmd = {this.hdhomerunconfigPath, this.id, "get" , "/tuner" + this.tunerNumber + "/lockkey"};
+            Process hdhomerunProcess = Runtime.getRuntime().exec(hdhomerunCmd);
+            
+            BufferedReader input = new BufferedReader(new InputStreamReader(hdhomerunProcess.getInputStream()));
+            lockStatus = input.readLine();
+            
+            return !lockStatus.trim().equalsIgnoreCase("none");
+            
+        }
+        catch(IOException ex)
+        {
+            System.out.println("Unexpected Error: Error checking lock status from HDHomeRun_config");
+            return false;
+        }
+    }
+    
+    public String getTunerLockSource()
+    {
+        String lockStatus = "";
+        
+        try
+        {
+            String[] hdhomerunCmd = {this.hdhomerunconfigPath, this.id, "get" , "/tuner" + this.tunerNumber + "/lockkey"};
+            Process hdhomerunProcess = Runtime.getRuntime().exec(hdhomerunCmd);
+            
+            BufferedReader input = new BufferedReader(new InputStreamReader(hdhomerunProcess.getInputStream()));
+            lockStatus = input.readLine();
+
+        }
+        catch(IOException ex)
+        {
+            System.out.println("Unexpected Error: Error checking lock status from HDHomeRun_config");
+        }
+        
+        return lockStatus.trim();
     }
     
     private long getFileSize(String filePath)
@@ -604,68 +769,6 @@ public class Tuner extends Thread
         return port;
     }
 
-    public boolean isTunerLocked()
-    {
-        String lockStatus;
-        
-        try
-        {
-            String[] hdhomerunCmd = {this.hdhomerunconfigPath, this.id, "get" , "/tuner" + this.tunerNumber + "/lockkey"};
-            Process hdhomerunProcess = Runtime.getRuntime().exec(hdhomerunCmd);
-            
-            BufferedReader input = new BufferedReader(new InputStreamReader(hdhomerunProcess.getInputStream()));
-            lockStatus = input.readLine();
-            
-            return !lockStatus.trim().equalsIgnoreCase("none");
-            
-        }
-        catch(IOException ex)
-        {
-            System.out.println("Unexpected Error: Error checking lock status from HDHomeRun_config");
-            return false;
-        }
-    }
-    
-    public String getTunerLockSource()
-    {
-        String lockStatus = "";
-        
-        try
-        {
-            String[] hdhomerunCmd = {this.hdhomerunconfigPath, this.id, "get" , "/tuner" + this.tunerNumber + "/lockkey"};
-            Process hdhomerunProcess = Runtime.getRuntime().exec(hdhomerunCmd);
-            
-            BufferedReader input = new BufferedReader(new InputStreamReader(hdhomerunProcess.getInputStream()));
-            lockStatus = input.readLine();
-
-        }
-        catch(IOException ex)
-        {
-            System.out.println("Unexpected Error: Error checking lock status from HDHomeRun_config");
-        }
-        
-        return lockStatus.trim();
-    }
-    
-    public void setTunerLock(long number)
-    {
-        try 
-        {
-            String[] hdhomerunCmd = {this.hdhomerunconfigPath, this.id, "set" , "/tuner" + this.tunerNumber + "/lockkey", number + ""};
-            Process hdhomerunProcess = Runtime.getRuntime().exec(hdhomerunCmd);
-            
-            hdhomerunProcess.waitFor();
-        } 
-        catch (IOException ex) 
-        {
-            System.out.println("Unexpected Error: Error setting lock status from HDHomeRun_config");
-        }
-        catch (InterruptedException ex2)
-        {
-            
-        }
-    }
-    
     public boolean isEnabled() 
     {
         return enabled;
