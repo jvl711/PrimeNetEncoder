@@ -43,7 +43,7 @@ public class Tuner extends Thread
     /*
     * Variables for tuner locking
     */
-    private long lockKey = -1;
+    private int lockKey = -1;
     
     /*
     * Variables for stream transfer
@@ -477,6 +477,7 @@ public class Tuner extends Thread
     private void setTunerChannel(String channel) throws IOException, InterruptedException
     {
         String[] swichChannelCmd;
+        String output = "";
                 
         if(this.lockKey != -1)
         {
@@ -491,6 +492,10 @@ public class Tuner extends Thread
         }
         
         Process channelChangeProcess = Runtime.getRuntime().exec(swichChannelCmd);
+        BufferedReader input = new BufferedReader(new InputStreamReader(channelChangeProcess.getInputStream()));
+        output = input.readLine();
+        PrimeNetEncoder.writeLogln("Command output: " + output, logName);
+        
         channelChangeProcess.waitFor();
     }
     
@@ -518,12 +523,12 @@ public class Tuner extends Thread
     private void setTunerLock()
     {
         Random rand = new Random();
-        long lockkey = rand.nextLong();
+        int lockkey = Math.abs(rand.nextInt());
         
         setTunerLock(lockkey);
     }
     
-    private void setTunerLock(long number)
+    private void setTunerLock(int number)
     {
         this.lockKey = number;
         
@@ -598,7 +603,7 @@ public class Tuner extends Thread
         }
         catch(IOException ex)
         {
-            System.out.println("Unexpected Error: Error checking lock status from HDHomeRun_config");
+            System.out.println("Unexpected Error: Error checking lock status from HDHomeRun_config " + ex.getMessage());
             return false;
         }
     }
@@ -618,7 +623,7 @@ public class Tuner extends Thread
         }
         catch(IOException ex)
         {
-            System.out.println("Unexpected Error: Error checking lock status from HDHomeRun_config");
+            System.out.println("Unexpected Error: Error getting lock source from HDHomeRun_config " + ex.getMessage());
         }
         
         return lockStatus.trim();
