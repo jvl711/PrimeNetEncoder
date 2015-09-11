@@ -361,6 +361,8 @@ public class Property
      */
     public void addProp(String propName, String propValue) throws java.io.IOException
     {
+        boolean hasReturn = isLastLineTerminated();
+        
         /* 
          * Adds new value to the hashMap
          */
@@ -370,9 +372,41 @@ public class Property
         
         //TODO:  Verify the file ends in a return before adding new property
         
+        //Add a return if the last line is not properly terminated.
+        if(!hasReturn)
+        {
+            out.println();
+        }
+        
         out.println(propName + "=" + propValue);
         out.flush();
         out.close();
+    }
+    
+    /**
+     * Internal method for verifying the last line has a return character.
+     * @return true if '\r' or '\n' is at the end of the file
+     */
+    private boolean isLastLineTerminated()
+    {
+        try
+        {
+            int temp;
+            char last = ' ';
+            BufferedReader reader = new BufferedReader(new FileReader(file));
+            
+            while((temp = reader.read()) != -1)
+            {
+                last = (char)temp;
+            }
+                
+            return (last == '\r' || last == '\n');
+        }
+        catch(Exception ex)
+        {
+            //Eat the exception
+            return false;
+        }
     }
     
 }
