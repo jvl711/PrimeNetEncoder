@@ -422,7 +422,7 @@ public class Tuner extends Thread
             //Transcode commane
             if(this.isDeinterlaceEnabled())
             {
-                if(this.scaling.equalsIgnoreCase(""))
+                if(this.scaling.trim().equalsIgnoreCase(""))
                 {
                     transcoderCmd = new String []{this.ffmpegPath, "-y", "-v", "quiet", "-analyzeduration", this.getFfmpegAnalzyeDuration() + "", "-probesize", this.getFfmpegProbeSize() + "","-i", input, "-f", "mpegts", "-vcodec", this.transcoderCodec, "-preset", this.getTranscodePreset(), "-b:v", this.getAverageBitrate() + "k", "-deinterlace", "-acodec", "copy", output};
                 }
@@ -433,7 +433,7 @@ public class Tuner extends Thread
             }
             else
             {
-                if(this.scaling.equalsIgnoreCase(""))
+                if(this.scaling.trim().equalsIgnoreCase(""))
                 {
                     transcoderCmd = new String []{this.ffmpegPath, "-y", "-v", "quiet", "-analyzeduration", this.getFfmpegAnalzyeDuration() + "", "-probesize", this.getFfmpegProbeSize() + "","-i", input, "-f", "mpegts", "-vcodec", this.transcoderCodec, "-preset", this.getTranscodePreset(), "-b:v", this.getAverageBitrate() + "k", "-acodec", "copy", output};
                 }
