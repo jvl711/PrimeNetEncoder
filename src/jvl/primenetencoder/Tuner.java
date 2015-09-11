@@ -457,44 +457,52 @@ public class Tuner extends Thread
     private void setTunerStream() throws IOException, InterruptedException
     {
         String[] sendStreamCmd;
+        String output;
                 
+            PrimeNetEncoder.writeLogln("Send stream to UDP port: " + this.transcoderPort, this.logName);
+        
         if(this.lockKey != -1)
         {
-            PrimeNetEncoder.writeLogln("Send stream to UDP port: " + this.transcoderPort, this.logName);
-            PrimeNetEncoder.writeLogln("Using Lockkey: " + this.lockKey, this.logName);
+            PrimeNetEncoder.writeLogln("\tUsing Lockkey: " + this.lockKey, this.logName);
             sendStreamCmd = new String[] {this.hdhomerunconfigPath, this.id, "key", this.lockKey + "","set" ,"/tuner" + this.tunerNumber + "/target",  "udp://" + this.localIPAddress + ":" + this.transcoderPort};
         }    
         else
         {
-            PrimeNetEncoder.writeLogln("Send stream to UDP port: " + this.transcoderPort, this.logName);
             sendStreamCmd = new String[] {this.hdhomerunconfigPath, this.id, "set" ,"/tuner" + this.tunerNumber + "/target",  "udp://" + this.localIPAddress + ":" + this.transcoderPort};        
         }
         
         Process sendStreamProcess = Runtime.getRuntime().exec(sendStreamCmd);
-        sendStreamProcess.waitFor();    
+        
+        BufferedReader input = new BufferedReader(new InputStreamReader(sendStreamProcess.getInputStream()));
+        output = input.readLine();
+        PrimeNetEncoder.writeLogln("\tCommand output: " + output, logName);
+        
+        sendStreamProcess.waitFor();
     }
     
     private void setTunerChannel(String channel) throws IOException, InterruptedException
     {
         String[] swichChannelCmd;
         String output = "";
-                
+        
+        PrimeNetEncoder.writeLogln("Switch channel: " + channel, this.logName);
+        
         if(this.lockKey != -1)
         {
-            PrimeNetEncoder.writeLogln("Switch channel: " + channel, this.logName);
-            PrimeNetEncoder.writeLogln("Using Lockkey: " + this.lockKey, this.logName);
+            
+            PrimeNetEncoder.writeLogln("\tUsing Lockkey: " + this.lockKey, this.logName);
             swichChannelCmd = new String[] {this.hdhomerunconfigPath, this.id, "key", this.lockKey + "","set" , "/tuner" + this.tunerNumber + "/vchannel", channel};
         }
         else
         {
-            PrimeNetEncoder.writeLogln("Switch channel: " + channel, this.logName);
             swichChannelCmd = new String[] {this.hdhomerunconfigPath, this.id, "set" , "/tuner" + this.tunerNumber + "/vchannel", channel};
         }
         
         Process channelChangeProcess = Runtime.getRuntime().exec(swichChannelCmd);
+        
         BufferedReader input = new BufferedReader(new InputStreamReader(channelChangeProcess.getInputStream()));
         output = input.readLine();
-        PrimeNetEncoder.writeLogln("Command output: " + output, logName);
+        PrimeNetEncoder.writeLogln("\tCommand output: " + output, logName);
         
         channelChangeProcess.waitFor();
     }
@@ -502,22 +510,29 @@ public class Tuner extends Thread
     private void clearTunerChannel() throws IOException, InterruptedException
     {
         String[] swichChannelCmd;
-                
+        String output;
+        
+        PrimeNetEncoder.writeLogln("Switch channel: none", this.logName);
+        
         if(this.lockKey != -1)
         {
-            PrimeNetEncoder.writeLogln("Switch channel: none", this.logName);
-            PrimeNetEncoder.writeLogln("Using Lockkey: " + this.lockKey, this.logName);
+            
+            PrimeNetEncoder.writeLogln("\tUsing Lockkey: " + this.lockKey, this.logName);
             swichChannelCmd = new String[] {this.hdhomerunconfigPath, this.id, "key", this.lockKey + "","set" , "/tuner" + this.tunerNumber + "/vchannel", "none"};
         }
         else
         {
-            PrimeNetEncoder.writeLogln("Switch channel: none", this.logName);
+            
             swichChannelCmd = new String[] {this.hdhomerunconfigPath, this.id, "set" , "/tuner" + this.tunerNumber + "/vchannel", "none"};
         }
         
         Process channelChangeProcess = Runtime.getRuntime().exec(swichChannelCmd);
-        channelChangeProcess.waitFor();
         
+        BufferedReader input = new BufferedReader(new InputStreamReader(channelChangeProcess.getInputStream()));
+        output = input.readLine();
+        PrimeNetEncoder.writeLogln("\tCommand output: " + output, logName);
+        
+        channelChangeProcess.waitFor();
     }
     
     private void setTunerLock()
