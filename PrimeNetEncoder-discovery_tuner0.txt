@@ -1,6 +1,0 @@
-08/14/2015 15:39:47 - Starting discovery thread for Tuner 131C3300
-08/14/2015 15:44:17 - Starting discovery thread for Tuner 131C3300
-08/14/2015 15:44:24 - Sending discovery response packet for Tuner Thread-1
-08/14/2015 15:45:23 - Starting discovery thread for Tuner 131C3300
-08/14/2015 15:48:42 - Starting discovery thread for Tuner HDHomeRun Prime 131C3300-0
-08/14/2015 15:49:02 - Sending discovery response packet for Tuner Thread-1
