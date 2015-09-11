@@ -17,6 +17,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import jvl.util.Property;
 
+/*
+ *  TODO: Added a quit command that properly shuts down all threads connections and recordings. It should stop from quiting if there is an active recording.
+ *  TODO: Add more propertys to the set command
+ *  TODO: Change set command to be in the format set [variable]=[value]
+ */
 
 public class PrimeNetEncoder extends Thread
 {
@@ -495,6 +500,16 @@ public class PrimeNetEncoder extends Thread
             {
                 tuners.get(i).setffmpegDelay(delay);
             }
+            
+            try
+            {
+                PrimeNetEncoder.getProperty().setProperty("ffmpeg.delay", delay + "");
+            }
+            catch(Exception ex)
+            {
+                System.out.println("Error setting property in property file!");
+            }
+            
         }
         else if(parameter.equalsIgnoreCase("ffmpeg.usestdin"))
         {
@@ -594,72 +609,6 @@ public class PrimeNetEncoder extends Thread
         return command;
     }
     
-    private void SaveProperties(Properties properties)
-    {
-        OutputStream propOut = null;
-        
-        try
-        {
-            propOut = new FileOutputStream(this.propertyFileName);
-            properties.store(propOut, "");
-        }
-        catch(IOException ex)
-        {
-            
-        }
-        finally
-        {
-            try
-            {
-                if(propOut != null)
-                {
-                    propOut.close();
-                }
-            }
-            catch(IOException ex1){}
-        }
-    }
-            
-    
-    private Properties LoadProperties()
-    {
-        Properties properties = new Properties();
-        File propFile = new File(this.propertyFileName);
-        InputStream propInput = null;
-        
-        //Load property file if it exists
-        if(propFile.exists())
-        {
-            try
-            {
-                propInput = new FileInputStream(this.propertyFileName);
-                
-                properties.load(propInput);
-            }
-            catch(IOException ex)
-            {
-            
-            }
-            finally
-            {
-                try
-                {
-                    if(propInput != null)
-                    {
-                        propInput.close();
-                    }
-                }
-                catch(Exception ex1){}
-            }
-        }
-        else
-        {
-            System.out.println("Property file does not exist.");
-        }
-        
-        return properties;
-    }
-    
     public static void writeLogln(String line, String logname)
     {
         String logFileName = "PrimeNetEncoder.txt";
@@ -696,5 +645,10 @@ public class PrimeNetEncoder extends Thread
         {
             
         }
+    }
+    
+    private static Property getProperty()
+    {
+        return PrimeNetEncoder.props;
     }
 }
