@@ -31,7 +31,7 @@ public class PrimeNetEncoder extends Thread
     * Default values
     */
     public static final int DEFAULT_DISCOVERY_PORT = 8271;
-    private static final String version = "1.2.1";
+    private static final String version = "1.2.2";
     private static final String propertyFileName = "PrimeNetEncoder.properties";
     private static Property props;
     
@@ -74,8 +74,8 @@ public class PrimeNetEncoder extends Thread
 
             this.tunerCount = props.getProperty("tuners.count", 3);
             this.discoveryPort = props.getProperty("discovery.port", PrimeNetEncoder.DEFAULT_DISCOVERY_PORT);
-            this.discoveryEnabled = props.getProperty("discovery.enabled", false);
-            boolean useMediaServer = props.getProperty("mediaserver.transfer", false);
+            this.discoveryEnabled = props.getProperty("discovery.enabled", true);
+            boolean useMediaServer = props.getProperty("mediaserver.transfer", true);
 
             for(int i = 0; i < tunerCount; i++)
             {
