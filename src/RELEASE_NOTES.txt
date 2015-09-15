@@ -1,3 +1,11 @@
+VERSION 1.2.2 (BETA)
+1. Added media server transfer
+2. Using STDIN/STDOUT to transfer data between ffmpeg and PrimeNetEncoder
+3. PrimeNetEncoder is handling Stream from HDHomeRun instead of ffmpeg
+3. Added ffmpeg setting analyzeduration and probesize
+4. Added tuner locking (Note: I do a force unlock when ever I start a new recording)
+5. Modified discovery logic to only respond to discovery requests if there is not an active connection with SageTV server
+
 VERSION 1.1.1
 1. Added proper discovery logic so that Sage can auto discover PrimeNetEncoder tuners
 
