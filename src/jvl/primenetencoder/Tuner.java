@@ -311,7 +311,7 @@ public class Tuner extends Thread
                     output = "-";
                 }
                 
-                if(this.ffmpegSTDINTransfer)
+                if(this.ffmpegSTDINTransfer) //This is defaulted to true right now
                 {
                     input = "pipe:0";
                 }
@@ -333,11 +333,19 @@ public class Tuner extends Thread
                 this.tunerOutput = new TunerOutput(this.transcoderPort, new BufferedOutputStream(encoderProcess.getOutputStream()), new BufferedInputStream(encoderProcess.getInputStream()), filePath, this.logName, uploadID, remoteIPAddress);
                 this.tunerOutput.start();
             }
+            //Think I might deprecte this option
+            /*
             else if(this.mediaServerTransfer)
             {
                 PrimeNetEncoder.writeLogln("Starting TunerOutput thread for ffmpeg Stream to SageTV MediaServer", this.logName);
                 this.tunerOutput = new TunerOutput(new BufferedInputStream(encoderProcess.getInputStream()), filePath, this.logName, uploadID, remoteIPAddress);
                 this.tunerOutput.start();
+            }
+            */
+            else
+            {
+                PrimeNetEncoder.writeLogln("Starting TunerOutput thread for ffmpeg CIFS output to SageTV", this.logName);
+                this.tunerOutput = new TunerOutput(this.transcoderPort, new BufferedOutputStream(encoderProcess.getOutputStream()), new BufferedInputStream(encoderProcess.getInputStream()), filePath, logName);
             }
             
             //Give a little time for the port to open

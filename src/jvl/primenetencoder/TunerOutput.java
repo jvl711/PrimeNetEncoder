@@ -48,27 +48,30 @@ public class TunerOutput extends Thread
     private TunerOutputWatcher outputWatcher;
     private TunerBridge tunerBridge;
     
-    //Write data directly to file
-    public TunerOutput(InputStream processOutput, String fileNamePath, String logName)
+    //Send data to sage by CIFS instead of media server
+    //TODO: Need to test this before beta release
+    public TunerOutput(int udpPort, OutputStream processInput, InputStream processOutput, String fileNamePath, String logName)
     {
-        this.processOutput = processOutput;
-        this.processInput = null;
         this.fileNamePath = fileNamePath;
         this.logName = logName;
         this.keepProcessing = true;
         this.useMediaServer = false;
         this.useDirectStream = false;
-        this.useSTDINStream = false;
+        this.useSTDINStream = true;
+        this.updPort = udpPort;
         this.fileSize = 0;
         this.uploadID = "";
+        this.processOutput = processOutput;
+        this.processInput = processInput;
         
         this.outputWatcher = new TunerOutputWatcher(this);
         
-        PrimeNetEncoder.writeLogln("Tuner output thread constructed for UploadID: " + uploadID, this.logName);
-        PrimeNetEncoder.writeLogln("Tuner output thread HDHomeRun(UDP) -> ffmpeg(STDOUT) -> PrimeNetEncoder -> File(CIFS/SMB)", this.logName);
+        PrimeNetEncoder.writeLogln("Tuner output thread HDHomeRun(UDP) -> PrimeNetEncoder(STDIN) -> ffmpeg(STDOUT) -> PrimeNetEncoder -> File(CIFS/SMB)", this.logName);
     }
     
     //Write data to Media Server
+    //TODO:  May want to depricate this option
+    /*
     public TunerOutput(InputStream processOutput, String fileNamePath, String logName, String uploadID, String mediaServerIPAddress)
     {
         this.processOutput = processOutput;
@@ -88,8 +91,10 @@ public class TunerOutput extends Thread
         PrimeNetEncoder.writeLogln("Tuner output thread constructed for UploadID: " + uploadID, this.logName);
         PrimeNetEncoder.writeLogln("Tuner output thread HDHomeRun(UDP) -> ffmpeg(STDOUT) -> PrimeNetEncoder -> SageTV Media Server(TCP)", this.logName);
     }
+    */
     
     //Direct write to from HDHomeRun to SageTV Media Server
+    //TODO:  Need to make this accessible to end user.  May choose to deprecate
     public TunerOutput(int udpPort, String fileNamePath, String logName, String uploadID, String mediaServerIPAddress)
     {
         this.uploadID = uploadID;
@@ -111,7 +116,7 @@ public class TunerOutput extends Thread
         PrimeNetEncoder.writeLogln("Tuner output thread HDHomeRun(UDP) -> PrimeNetEncoder -> SageTV Media Server(TCP)", this.logName);
     }
     
-    //Use STDIN to send data to FFMPEG
+    //Use media server to transfer to Sage
     public TunerOutput(int udpPort, OutputStream processInput, InputStream processOutput, String fileNamePath, String logName, String uploadID, String mediaServerIPAddress)
     {
         this.uploadID = uploadID;
@@ -259,7 +264,7 @@ public class TunerOutput extends Thread
             }
 
             DatagramSocket socket = new DatagramSocket(this.updPort);
-            DatagramPacket packet = new DatagramPacket(new byte[8196], 8196);
+            DatagramPacket packet = new DatagramPacket(new byte[DEFAULT_MEDIA_BUFFER_SIZE], DEFAULT_MEDIA_BUFFER_SIZE);
             
             socket.receive(packet);
             
@@ -369,6 +374,11 @@ public class TunerOutput extends Thread
     public void run()
     {
         
+        if(this.useSTDINStream)
+        {
+            this.tunerBridge.start();
+        }
+        
         this.outputWatcher.start();
         
         if(useMediaServer && this.useDirectStream)
@@ -377,15 +387,11 @@ public class TunerOutput extends Thread
         }
         else if(useMediaServer)
         {
-            if(this.useSTDINStream)
-            {
-                this.tunerBridge.start();
-            }
-            
             this.sendToMediaServer();
         }
         else if(this.useDirectStream)
         {
+            //TODO:  Create direct stream to file option
             throw new RuntimeException("Direct stream to file is not currently supported");
         }
         else
