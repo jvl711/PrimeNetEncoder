@@ -1,0 +1,32 @@
+VERSION 1.2.2 (BETA)
+1. Added media server transfer
+2. Using STDIN/STDOUT to transfer data between ffmpeg and PrimeNetEncoder
+3. PrimeNetEncoder is handling Stream from HDHomeRun instead of ffmpeg
+3. Added ffmpeg setting analyzeduration and probesize
+4. Added tuner locking (Note: I do a force unlock when ever I start a new recording)
+5. Modified discovery logic to only respond to discovery requests if there is not an active connection with SageTV server
+
+VERSION 1.1.1
+1. Added proper discovery logic so that Sage can auto discover PrimeNetEncoder tuners
+
+VERSION 1.0.1
+1. Better error handling when binding port is already in use.
+2. Added setting for delay to wait for ffmpeg to fully start.
+3. Added scaling property to the transcoding to allow resizing video
+4. Adding setting for changing codec used for transcoding
+
+VERSION 1.0.0
+1. Initial public release
+
+VERSION 0.0.3
+1. Enhancement:  Added real-time transcoding
+
+VERSION 0.0.2
+1. Bug: The get file size routine has an issue with paths with spaces in them
+2. Bug: Stopping recording does not stop the HDHomeRun if there is a firewall
+3. Enhancement: Changed capture_config in the tuner properties for sage
+4. Enhancement: Updated documentation to add all features and make some areas more clear
+5. Enhancement: Added tuners.count to property file
+
+VERSION 0.0.1
+1. Initial Release
