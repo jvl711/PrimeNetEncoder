@@ -68,7 +68,7 @@ public class Property
                 if(temp.trim().length() > 0)
                 {
             
-                    if(!(temp.trim().charAt(0) == '/' && temp.trim().charAt(1) == '/'))
+                    if(!(temp.trim().charAt(0) == '/' && temp.trim().charAt(1) == '/') || temp.trim().charAt(0) == '#')
                     {
                         tokenizer = new StringTokenizer(temp,"=");
                         key = tokenizer.nextToken().trim().toLowerCase();
