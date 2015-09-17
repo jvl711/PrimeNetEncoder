@@ -13,8 +13,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import jvl.util.Property;
 
 /*
@@ -31,7 +29,7 @@ public class PrimeNetEncoder extends Thread
     * Default values
     */
     public static final int DEFAULT_DISCOVERY_PORT = 8271;
-    private static final String version = "1.2.2";
+    private static final String version = "1.2.3";
     private static final String propertyFileName = "PrimeNetEncoder.properties";
     private static Property props;
     

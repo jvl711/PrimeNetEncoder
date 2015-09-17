@@ -47,11 +47,15 @@ public class TunerOutput extends Thread
     
     private TunerOutputWatcher outputWatcher;
     private TunerBridge tunerBridge;
+    private Tuner tuner;
+    
+    //Write data directly to file
     
     //Send data to sage by CIFS instead of media server
     //TODO: Need to test this before beta release
-    public TunerOutput(int udpPort, OutputStream processInput, InputStream processOutput, String fileNamePath, String logName)
+    public TunerOutput(Tuner tuner, int udpPort, OutputStream processInput, InputStream processOutput, String fileNamePath, String logName)
     {
+        this.tuner = tuner;
         this.fileNamePath = fileNamePath;
         this.logName = logName;
         this.keepProcessing = true;
@@ -65,15 +69,16 @@ public class TunerOutput extends Thread
         this.processInput = processInput;
         
         this.outputWatcher = new TunerOutputWatcher(this);
+        this.tunerBridge = new TunerBridge(this.processInput, this.updPort, this.logName);
         
         PrimeNetEncoder.writeLogln("Tuner output thread HDHomeRun(UDP) -> PrimeNetEncoder(STDIN) -> ffmpeg(STDOUT) -> PrimeNetEncoder -> File(CIFS/SMB)", this.logName);
     }
     
     //Write data to Media Server
-    //TODO:  May want to depricate this option
     /*
-    public TunerOutput(InputStream processOutput, String fileNamePath, String logName, String uploadID, String mediaServerIPAddress)
+    public TunerOutput(Tuner tuner, InputStream processOutput, String fileNamePath, String logName, String uploadID, String mediaServerIPAddress)
     {
+        this.tuner = tuner;
         this.processOutput = processOutput;
         this.processInput = null;
         this.uploadID = uploadID;
@@ -94,9 +99,9 @@ public class TunerOutput extends Thread
     */
     
     //Direct write to from HDHomeRun to SageTV Media Server
-    //TODO:  Need to make this accessible to end user.  May choose to deprecate
-    public TunerOutput(int udpPort, String fileNamePath, String logName, String uploadID, String mediaServerIPAddress)
+    public TunerOutput(Tuner tuner, int udpPort, String fileNamePath, String logName, String uploadID, String mediaServerIPAddress)
     {
+        this.tuner = tuner;
         this.uploadID = uploadID;
         this.fileNamePath = fileNamePath;
         this.logName = logName;
@@ -117,8 +122,9 @@ public class TunerOutput extends Thread
     }
     
     //Use media server to transfer to Sage
-    public TunerOutput(int udpPort, OutputStream processInput, InputStream processOutput, String fileNamePath, String logName, String uploadID, String mediaServerIPAddress)
+    public TunerOutput(Tuner tuner, int udpPort, OutputStream processInput, InputStream processOutput, String fileNamePath, String logName, String uploadID, String mediaServerIPAddress)
     {
+        this.tuner = tuner;
         this.uploadID = uploadID;
         this.fileNamePath = fileNamePath;
         this.logName = logName;
@@ -316,7 +322,7 @@ public class TunerOutput extends Thread
         
             while ( (len1 = input.read(buffer)) > 0 && keepProcessing) 
             {
-                fileSize += len1;
+                this.fileSize += len1;
                 outputFile.write(buffer,0, len1);
                 outputFile.flush();
             }
@@ -325,6 +331,7 @@ public class TunerOutput extends Thread
         catch(Exception ex)
         {
             PrimeNetEncoder.writeLogln("Unhandled Exception writing stream to file: " + ex.getMessage(), this.logName);
+            ex.printStackTrace();
         }
         finally
         {
@@ -496,7 +503,13 @@ public class TunerOutput extends Thread
                     PrimeNetEncoder.writeLogln("Tuner bridge has transfered: " + this.tunerOutput.tunerBridge.getTransferSize(), logName);
                 }
                 
-                if(tunerOutput.getFileSize() > 0)
+                if(tunerOutput.getFileSize() == 0 && elapsedTimeMS == 6000)
+                {
+                    PrimeNetEncoder.writeLogln("No data transfered in 6000ms.  Reseting tuner channel and stream.", logName);
+                    tuner.resetRecording();
+                }
+                
+                if(tunerOutput.getFileSize() > 0 )
                 {
                     this.dataFound = true;
                 }
