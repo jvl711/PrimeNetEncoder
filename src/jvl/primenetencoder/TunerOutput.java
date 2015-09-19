@@ -203,7 +203,7 @@ public class TunerOutput extends Thread
                 PrimeNetEncoder.writeLogln("Write open failed!", logName);
                 return;
             }
-
+            
             byte[] buffer = new byte[writeBufferSize];
             int len1;
             
@@ -232,6 +232,11 @@ public class TunerOutput extends Thread
             {
                 try {output.close(); input.close(); sinput.close();} catch (IOException ex) { }
                 input = null;
+                
+                if(this.tunerBridge != null)
+                {
+                    this.tunerBridge.stopProcessing();
+                }
             }
         }
         
@@ -269,6 +274,22 @@ public class TunerOutput extends Thread
                 return;
             }
 
+            PrimeNetEncoder.writeLogln("Sending REMUX_SETUP command", logName);
+            output.write(("REMUX_SETUP 1 0 8192\r\n").getBytes(PrimeNetEncoder.CHARACTER_ENCODING));
+            output.flush();
+            
+            response = sinput.readLine();
+            
+            if(response.equalsIgnoreCase("OK"))
+            {
+                PrimeNetEncoder.writeLogln("REMUX sent successfully", logName);
+            }
+            else
+            {
+                PrimeNetEncoder.writeLogln("REMUX setup failed! " + response, logName);
+                return;
+            }
+            
             DatagramSocket socket = new DatagramSocket(this.updPort);
             DatagramPacket packet = new DatagramPacket(new byte[DEFAULT_MEDIA_BUFFER_SIZE], DEFAULT_MEDIA_BUFFER_SIZE);
             
@@ -288,7 +309,6 @@ public class TunerOutput extends Thread
             output.write("CLOSE".getBytes(PrimeNetEncoder.CHARACTER_ENCODING));
             output.write("QUIT".getBytes(PrimeNetEncoder.CHARACTER_ENCODING));
             
-            //Write initialization info
             socket.close();
         } 
         catch (IOException ex) 
@@ -301,6 +321,11 @@ public class TunerOutput extends Thread
             {
                 try {output.close(); input.close(); sinput.close();} catch (IOException ex) { }
                 input = null;
+                
+                if(this.tunerBridge != null)
+                {
+                    this.tunerBridge.stopProcessing();
+                }
             }
         }
         
@@ -339,6 +364,11 @@ public class TunerOutput extends Thread
             {
                 try {outputFile.close(); input.close();} catch (IOException ex) { }
                 input = null;
+                
+                if(this.tunerBridge != null)
+                {
+                    this.tunerBridge.stopProcessing();
+                }
             }
         }
     }
