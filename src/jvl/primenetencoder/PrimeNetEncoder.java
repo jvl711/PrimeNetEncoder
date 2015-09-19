@@ -528,11 +528,31 @@ public class PrimeNetEncoder extends Thread
                 tuners.get(i).setFfmegUseSTDIN(useSTDIN);
             }
         }
+        else if(parameter.equalsIgnoreCase("usedirectstream"))
+        {
+            boolean useDirectStream;
+            
+            try
+            {
+                useDirectStream = Boolean.parseBoolean(value);
+            }
+            catch(Exception ex)
+            {
+                System.out.println("Unknown parameter.  Value must be True/False.");
+                return;
+            }
+            
+            for(int i = 0; i < tuners.size(); i++)
+            {
+                tuners.get(i).setDirectStream(useDirectStream);
+            }
+        }
         else
         {
             System.out.println("Unknown variable.");
         }
     }
+    
     
     private void getTunerVariable(String parameter)
     {

@@ -360,7 +360,7 @@ public class Tuner extends Thread
         {
             PrimeNetEncoder.writeLogln("ERROR STARTING RECORDING!!!", this.logName);
             PrimeNetEncoder.writeLogln(ex.getMessage(), this.logName);
-            ex.printStackTrace();
+            ex.printStackTrace(System.out);
         }
         finally
         {
@@ -943,5 +943,15 @@ public class Tuner extends Thread
     public void setFfmegUseSTDIN(boolean value)
     {
         this.ffmpegSTDINTransfer = value;
+    }
+    
+    public boolean isDirectStream()
+    {
+        return directStream;
+    }
+    
+    public void setDirectStream(boolean value)
+    {
+        this.directStream = value;
     }
 }
