@@ -294,7 +294,7 @@ public class Tuner extends Thread
             
             this.setTunerLock();
             this.setTunerChannel(channel);
-            this.setTunerStream();
+            this.setTunerStream("udp://" + this.localIPAddress + ":" + this.transcoderPort);
         
             /*
              * Unless doing direct stream, start the ffmpeg process.  ffmpeg
@@ -324,12 +324,14 @@ public class Tuner extends Thread
             {
                 PrimeNetEncoder.writeLogln("Starting TunerOutput thread for Direct Stream to SageTV MediaServer", this.logName);
                 this.tunerOutput = new TunerOutput(this, this.transcoderPort, filePath, this.logName, uploadID, remoteIPAddress);
+                this.tunerOutput.setPriority(Thread.MAX_PRIORITY);
                 this.tunerOutput.start();
             }
             else if(this.mediaServerTransfer && this.ffmpegSTDINTransfer)
             {
                 PrimeNetEncoder.writeLogln("Starting TunerOutput thread for stdin to ffmpeg then stdout to SageTV MediaServer", this.logName);
-                this.tunerOutput = new TunerOutput(this, this.transcoderPort, new BufferedOutputStream(encoderProcess.getOutputStream()), new BufferedInputStream(encoderProcess.getInputStream()), filePath, this.logName, uploadID, remoteIPAddress);
+                this.tunerOutput = new TunerOutput(this, this.transcoderPort, encoderProcess.getOutputStream(), encoderProcess.getInputStream(), filePath, this.logName, uploadID, remoteIPAddress);
+                this.tunerOutput.setPriority(Thread.MAX_PRIORITY);
                 this.tunerOutput.start();
             }
             //Think I might deprecte this option
@@ -344,7 +346,8 @@ public class Tuner extends Thread
             else
             {
                 PrimeNetEncoder.writeLogln("Starting TunerOutput thread for ffmpeg CIFS output to SageTV", this.logName);
-                this.tunerOutput = new TunerOutput(this, this.transcoderPort, new BufferedOutputStream(encoderProcess.getOutputStream()), new BufferedInputStream(encoderProcess.getInputStream()), filePath, logName);
+                this.tunerOutput = new TunerOutput(this, this.transcoderPort, encoderProcess.getOutputStream(), encoderProcess.getInputStream(), filePath, logName);
+                this.tunerOutput.setPriority(Thread.MAX_PRIORITY);
                 this.tunerOutput.start();
             }
             
@@ -386,11 +389,33 @@ public class Tuner extends Thread
                 
                 PrimeNetEncoder.writeLogln("Stopping the TunerOutput thread", this.logName);
                 this.tunerOutput.stopProcessing();
-                
-                this.clearTunerChannel();
-                this.clearTunerLock(true); //Do forced to be on the safe side
 
-		if(!this.directStream)
+                try
+                {
+                    this.clearTunerStream();
+                }
+                catch(Exception ex)
+                {
+                    PrimeNetEncoder.writeLogln("Error: Unexcpected error stopping tuner stream - " + ex.getMessage(), logName);
+                }
+                try
+                {
+                    this.clearTunerChannel();
+                }
+                catch(Exception ex)
+                {
+                    PrimeNetEncoder.writeLogln("Error: Unexcpected error clearing tuner channel - " + ex.getMessage(), logName);
+                }
+                try
+                {
+                    this.clearTunerLock(true); //Do forced to be on the safe side
+                }
+                catch(Exception ex)
+                {
+                    PrimeNetEncoder.writeLogln("Error: Unexcpected error clearing tuner lock - " + ex.getMessage(), logName);
+                }
+                
+		if(this.encoderProcess != null)
                 {
                     PrimeNetEncoder.writeLogln("Stopping the encoder process", this.logName);
                     this.encoderProcess.destroy(); //Forcibly();
@@ -404,15 +429,22 @@ public class Tuner extends Thread
             }
             catch(Exception ex)
             {
-                PrimeNetEncoder.writeLogln("Unexpected Error Stopping Recording: " + ex.getMessage(), this.logName);
-                ex.printStackTrace();
+                PrimeNetEncoder.writeLogln("Error: Unexpected error etopping recording - " + ex.getMessage(), this.logName);
+                ex.printStackTrace(System.out);
             }
             finally
             {
+                this.encoderProcess = null;
                 this.recordingFile = "";
                 this.recordingChannel = "";
                 this.recordingQuality = "";
-                recording = false;
+                this.recording = false;
+                
+                //The server appears to continue to check the file size.  I am going to leave this out for now
+                //if(!this.tunerOutput.isAlive())
+                //{
+                //    tunerOutput = null;
+                //}
             }
         }                
     }
@@ -459,19 +491,18 @@ public class Tuner extends Thread
         return transcoderCmd;
     }
 
-    
     public void resetRecording()
     {
         try
         {
             this.setTunerChannel(this.getRecordingChannel());
-            this.setTunerStream();
+            this.setTunerStream("udp://" + this.localIPAddress + ":" + this.transcoderPort);
         }
         catch(Exception ex) { }
             
     }
     
-    private void setTunerStream() throws IOException, InterruptedException
+    private void setTunerStream(String url) throws IOException, InterruptedException
     {
         String[] sendStreamCmd;
         String output;
@@ -481,7 +512,7 @@ public class Tuner extends Thread
         if(this.lockKey != -1)
         {
             PrimeNetEncoder.writeLogln("\tUsing Lockkey: " + this.lockKey, this.logName);
-            sendStreamCmd = new String[] {this.hdhomerunconfigPath, this.id, "key", this.lockKey + "","set" ,"/tuner" + this.tunerNumber + "/target",  "udp://" + this.localIPAddress + ":" + this.transcoderPort};
+            sendStreamCmd = new String[] {this.hdhomerunconfigPath, this.id, "key", this.lockKey + "","set" ,"/tuner" + this.tunerNumber + "/target",  url};
         }    
         else
         {
@@ -495,6 +526,11 @@ public class Tuner extends Thread
         PrimeNetEncoder.writeLogln("\tCommand output: " + output, logName);
         
         sendStreamProcess.waitFor();
+    }
+    
+    private void clearTunerStream() throws IOException, InterruptedException
+    {
+        setTunerStream("none");
     }
     
     private void setTunerChannel(String channel) throws IOException, InterruptedException
@@ -526,30 +562,7 @@ public class Tuner extends Thread
     
     private void clearTunerChannel() throws IOException, InterruptedException
     {
-        String[] swichChannelCmd;
-        String output;
-        
-        PrimeNetEncoder.writeLogln("Switch channel: none", this.logName);
-        
-        if(this.lockKey != -1)
-        {
-            
-            PrimeNetEncoder.writeLogln("\tUsing Lockkey: " + this.lockKey, this.logName);
-            swichChannelCmd = new String[] {this.hdhomerunconfigPath, this.id, "key", this.lockKey + "","set" , "/tuner" + this.tunerNumber + "/vchannel", "none"};
-        }
-        else
-        {
-            
-            swichChannelCmd = new String[] {this.hdhomerunconfigPath, this.id, "set" , "/tuner" + this.tunerNumber + "/vchannel", "none"};
-        }
-        
-        Process channelChangeProcess = Runtime.getRuntime().exec(swichChannelCmd);
-        
-        BufferedReader input = new BufferedReader(new InputStreamReader(channelChangeProcess.getInputStream()));
-        output = input.readLine();
-        PrimeNetEncoder.writeLogln("\tCommand output: " + output, logName);
-        
-        channelChangeProcess.waitFor();
+        this.setTunerChannel("none");
     }
     
     private void setTunerLock()

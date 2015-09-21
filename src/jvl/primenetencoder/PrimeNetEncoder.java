@@ -1,13 +1,13 @@
 
 package jvl.primenetencoder;
 
-import java.util.Properties;
-import java.io.InputStream;
-import java.io.FileInputStream;
-import java.io.OutputStream;
+//import java.util.Properties;
+//import java.io.InputStream;
+//import java.io.FileInputStream;
+//import java.io.OutputStream;
 import java.io.FileOutputStream;
 import java.io.File;
-import java.io.IOException;
+//import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -29,7 +29,7 @@ public class PrimeNetEncoder extends Thread
     * Default values
     */
     public static final int DEFAULT_DISCOVERY_PORT = 8271;
-    private static final String version = "1.2.3";
+    private static final String version = "1.2.4";
     private static final String propertyFileName = "PrimeNetEncoder.properties";
     private static Property props;
     

@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package jvl.primenetencoder;
 
 import java.io.InputStream;
@@ -33,17 +28,18 @@ public class TunerOutput extends Thread
     private final OutputStream processInput;
     private final String fileNamePath;
     private final String uploadID;
+    private final int updPort;
     
     private final boolean useMediaServer;
     private final boolean useDirectStream;
     private final boolean useSTDINStream;
     
     private boolean keepProcessing;
-    private BufferedInputStream input;
+    //private BufferedInputStream input;
     private String mediaServerIPAddress;
     private long fileSize;
     private static int writeBufferSize = DEFAULT_MEDIA_BUFFER_SIZE;
-    private int updPort;
+    
     
     private TunerOutputWatcher outputWatcher;
     private TunerBridge tunerBridge;
@@ -149,34 +145,25 @@ public class TunerOutput extends Thread
     
     public void stopProcessing()
     {
-        if(this.useSTDINStream)
-        {
-            this.tunerBridge.stopProcessing();
-        }
-        
         this.keepProcessing = false;
         
-        //This might be causeing things to hang.  Commenting out for now.
-        //Wait to see if thread stops.  If not close inuptStream.
-        /*
-        try 
-        { 
-            Thread.sleep(500);
-            if(input != null)
-            {
-                input.close();
-            }
-        } 
-        catch(Exception ex) {}
-        */
-        //TODO:  Handle the watcher if we stop stream before data is produced
+        if(this.outputWatcher.isAlive())
+        {
+            this.outputWatcher.stopProcessing();
+        }
         
+        if(this.tunerBridge.isAlive())
+        {
+            this.tunerBridge.stopProcessing();
+        }       
+
     }
     
     private void sendToMediaServer()
     {
         BufferedOutputStream output = null;
         BufferedReader sinput = null;
+        BufferedInputStream input = null;
         
         //open up a channel to the MediaServer port (8171). It requests permission to stream to the file via WRITEOPEN filename UploadID\r\n. If sage recognizes the uploadID, it allows it, and awaits "WRITE offset length\r\nDATA".
         try 
@@ -187,6 +174,7 @@ public class TunerOutput extends Thread
             output = new BufferedOutputStream(server.getOutputStream());
             sinput = new BufferedReader(new InputStreamReader(server.getInputStream()));
             input = new BufferedInputStream(this.processOutput);
+            
             
             PrimeNetEncoder.writeLogln("Sending write open command", logName);
             output.write(("WRITEOPEN " + this.fileNamePath + " " + this.uploadID + "\r\n").getBytes(PrimeNetEncoder.CHARACTER_ENCODING));
@@ -228,16 +216,38 @@ public class TunerOutput extends Thread
         }
         finally
         {
+            if(this.tunerBridge != null)
+            {
+                this.tunerBridge.stopProcessing();
+            }
             if(output != null)
             {
-                try {output.close(); input.close(); sinput.close();} catch (IOException ex) { }
-                input = null;
-                
-                if(this.tunerBridge != null)
+                try 
                 {
-                    this.tunerBridge.stopProcessing();
-                }
+                    output.close(); 
+                } 
+                catch (IOException ex) { }
+                output = null;
             }
+            if(input != null)
+            {
+                try 
+                {
+                    input.close(); 
+                } 
+                catch (IOException ex) { }
+                input = null;
+            }
+            if(sinput != null)
+            {
+                try 
+                {
+                    sinput.close(); 
+                } 
+                catch (IOException ex) { }
+                sinput = null;
+            }
+            PrimeNetEncoder.writeLogln("TunerOutput thread exited", logName);
         }
         
     }
@@ -246,6 +256,8 @@ public class TunerOutput extends Thread
     {
         BufferedOutputStream output = null;
         BufferedReader sinput = null;
+        BufferedInputStream input = null;
+        DatagramSocket socket = null;
         
         System.out.println("SENDING STREAM RAW!!!");
         
@@ -290,12 +302,15 @@ public class TunerOutput extends Thread
                 return;
             }
             
-            DatagramSocket socket = new DatagramSocket(this.updPort);
-            DatagramPacket packet = new DatagramPacket(new byte[DEFAULT_MEDIA_BUFFER_SIZE], DEFAULT_MEDIA_BUFFER_SIZE);
+            socket = new DatagramSocket(this.updPort);
+            DatagramPacket packet = new DatagramPacket(new byte[DEFAULT_MEDIA_BUFFER_SIZE * 4], DEFAULT_MEDIA_BUFFER_SIZE * 4);
+            
+            socket.setReceiveBufferSize(65535);
+            socket.setSoTimeout(12000); //TODO: Set a global timeout for the UDP
             
             socket.receive(packet);
             
-            while ( packet.getLength() > 0 && keepProcessing) 
+            while (packet.getLength() > 0 && keepProcessing) 
             {
                 output.write(("WRITE " + fileSize + " " + packet.getLength() + "\r\n").getBytes(PrimeNetEncoder.CHARACTER_ENCODING));
                 output.write(packet.getData(),0, packet.getLength());
@@ -309,7 +324,6 @@ public class TunerOutput extends Thread
             output.write("CLOSE".getBytes(PrimeNetEncoder.CHARACTER_ENCODING));
             output.write("QUIT".getBytes(PrimeNetEncoder.CHARACTER_ENCODING));
             
-            socket.close();
         } 
         catch (IOException ex) 
         {
@@ -317,16 +331,43 @@ public class TunerOutput extends Thread
         }
         finally
         {
+            if(socket != null)
+            {
+                try 
+                {
+                    socket.close(); 
+                } 
+                catch (Exception ex) { }
+                socket = null;
+            }
             if(output != null)
             {
-                try {output.close(); input.close(); sinput.close();} catch (IOException ex) { }
-                input = null;
-                
-                if(this.tunerBridge != null)
+                try 
                 {
-                    this.tunerBridge.stopProcessing();
-                }
+                    output.close(); 
+                } 
+                catch (IOException ex) { }
+                output = null;
             }
+            if(input != null)
+            {
+                try 
+                {
+                    input.close(); 
+                } 
+                catch (IOException ex) { }
+                input = null;
+            }
+            if(sinput != null)
+            {
+                try 
+                {
+                    sinput.close(); 
+                } 
+                catch (IOException ex) { }
+                sinput = null;
+            }
+            PrimeNetEncoder.writeLogln("TunerOutput thread exited", logName);
         }
         
     }
@@ -334,12 +375,11 @@ public class TunerOutput extends Thread
     private void sendToFile()
     {
         FileOutputStream outputFile = null;
-        PrimeNetEncoder.writeLogln("Tuner output thread started for file: " + fileNamePath, this.logName);
+        BufferedInputStream input = null;
         
         try
         {
             input = new BufferedInputStream(this.processOutput);
-            
             outputFile = new FileOutputStream(new File(this.fileNamePath));
 
             byte[] buffer = new byte[writeBufferSize];
@@ -356,21 +396,36 @@ public class TunerOutput extends Thread
         catch(Exception ex)
         {
             PrimeNetEncoder.writeLogln("Unhandled Exception writing stream to file: " + ex.getMessage(), this.logName);
-            ex.printStackTrace();
+            ex.printStackTrace(System.out);
         }
         finally
         {
+            if(this.tunerBridge != null)
+            {
+                this.tunerBridge.stopProcessing();
+            }
+            
             if(outputFile != null)
             {
-                try {outputFile.close(); input.close();} catch (IOException ex) { }
-                input = null;
-                
-                if(this.tunerBridge != null)
+                try 
                 {
-                    this.tunerBridge.stopProcessing();
-                }
+                    outputFile.close(); 
+                } 
+                catch (IOException ex) { }
+                outputFile = null;
             }
+            if(input != null)
+            {
+                try 
+                {
+                    input.close(); 
+                } 
+                catch (IOException ex) { }
+                input = null;
+            }
+            PrimeNetEncoder.writeLogln("TunerOutput thread exited", logName);
         }
+        
     }
     
     /**
@@ -416,6 +471,7 @@ public class TunerOutput extends Thread
             this.tunerBridge.start();
         }
         
+        this.outputWatcher.setPriority(Thread.MIN_PRIORITY);
         this.outputWatcher.start();
         
         if(useMediaServer && this.useDirectStream)
@@ -439,11 +495,11 @@ public class TunerOutput extends Thread
     
     private class TunerBridge extends Thread
     {
-        private OutputStream processInput;
-        private int udpPort;
+        private final OutputStream processInput;
+        private final int udpPort;
         private long transferSize;
         private boolean keepProcessing;
-        private String logName;
+        private final String logName;
         
         public TunerBridge(OutputStream processInput, int udpPort, String logName)
         {
@@ -458,22 +514,25 @@ public class TunerOutput extends Thread
         public void run()
         {
             PrimeNetEncoder.writeLogln("TunerBridge thread started udpPort: " + udpPort, logName);
-            
+            BufferedOutputStream output = null;
+            DatagramSocket socket = null;
             int bufferSize = DEFAULT_UDP_BUFFER_SIZE * 4;
             
             try
             {
-                DatagramSocket socket = new DatagramSocket(this.udpPort);
+                output = new BufferedOutputStream(this.processInput);
+                socket = new DatagramSocket(this.udpPort);
                 DatagramPacket packet = new DatagramPacket(new byte[bufferSize], bufferSize);
                 
                 //Set revice buffer to max size.
                 socket.setReceiveBufferSize(65535);
+                socket.setSoTimeout(12000); //TODO: Set global udp timeout
                 
                 socket.receive(packet);
 
-                while ( packet.getLength() > 0 && this.keepProcessing) 
+                while (packet.getLength() > 0 && this.keepProcessing) 
                 {
-                    this.processInput.write(packet.getData(), 0, packet.getLength());
+                    output.write(packet.getData(), 0, packet.getLength());
                     this.transferSize += packet.getLength();
                     socket.receive(packet);
                 }
@@ -483,6 +542,26 @@ public class TunerOutput extends Thread
             catch(Exception ex)
             {
                 PrimeNetEncoder.writeLogln("Unhandled Exception writing stream to file: " + ex.getMessage(), this.logName);
+            }
+            finally
+            {
+                if(socket != null)
+                {
+                    try
+                    {
+                        socket.close();
+                    }
+                    catch(Exception ex){ }
+                }
+                if(output != null)
+                {
+                    try
+                    {
+                        output.close();
+                    }
+                    catch(IOException ex){ }
+                }
+                PrimeNetEncoder.writeLogln("TunerBridge thread exited", logName);
             }
         }
      
@@ -514,26 +593,28 @@ public class TunerOutput extends Thread
         private TunerOutput tunerOutput;
         private long elapsedTimeMS;
         private boolean dataFound;
+        private boolean keepProcessing;
 
         public TunerOutputWatcher(TunerOutput tunerOutput)
         {
             this.tunerOutput = tunerOutput;
             this.elapsedTimeMS = 0;
             this.dataFound = false;
+            this.keepProcessing = true;
         }
 
         @Override
         public void run()
         {
 
-            while(!dataFound && elapsedTimeMS < MAX_WAIT_TIME)
+            while(!dataFound && elapsedTimeMS < MAX_WAIT_TIME && keepProcessing)
             {
                 if(this.tunerOutput.useSTDINStream)
                 {
                     PrimeNetEncoder.writeLogln("Tuner bridge has transfered: " + this.tunerOutput.tunerBridge.getTransferSize(), logName);
                 }
                 
-                if(tunerOutput.getFileSize() == 0 && elapsedTimeMS == 6000)
+                if(tunerOutput.getFileSize() == 0 && (elapsedTimeMS == 5000 || elapsedTimeMS == 10000))
                 {
                     PrimeNetEncoder.writeLogln("No data transfered in 6000ms.  Reseting tuner channel and stream.", logName);
                     tuner.resetRecording();
@@ -559,6 +640,11 @@ public class TunerOutput extends Thread
                 PrimeNetEncoder.writeLogln("WARNING: Tuner has not produced data in (" + elapsedTimeMS + "ms)", tunerOutput.getLogName());
                 //TODO:  Modify the code to try and resolve the situation.  Possible restart processes
             }
+        }
+        
+        public void stopProcessing()
+        {
+            this.keepProcessing = false;
         }
     }
     
