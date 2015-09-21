@@ -525,6 +525,7 @@ public class TunerOutput extends Thread
                 socket = new DatagramSocket(this.udpPort);
                 DatagramPacket packet = new DatagramPacket(new byte[1500], 1500);
                 
+                
                 //Set revice buffer to max size.
                 socket.setReceiveBufferSize(65535);
                 socket.setSoTimeout(12000); //TODO: Set global udp timeout
