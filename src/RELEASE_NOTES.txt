@@ -1,3 +1,11 @@
+VERSION 1.2.4 (BETA)
+1. Fixed mediaserver.transfer = false.
+2. Added the ability for the OutputWatcher to reset the tuner if data is not produced in a timely fashion
+3. Enhanced the exception handling in the TunerOutput thread.  This was causing issues with keeping the UDP port open
+4. Set thread priority to TunerOutput to MAX.  Set thread priority to Watcher to MIN
+5. Cleaned up some of the code that was double buffering streams.  This might have been causing performance issues
+6. Added timeout to the UDP connections
+
 VERSION 1.2.2 (BETA)
 1. Added media server transfer
 2. Using STDIN/STDOUT to transfer data between ffmpeg and PrimeNetEncoder
