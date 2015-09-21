@@ -20,8 +20,8 @@ import java.net.Socket;
  */
 public class TunerOutput extends Thread
 {
-    private static final int DEFAULT_MEDIA_BUFFER_SIZE = 8096;
-    private static final int DEFAULT_UDP_BUFFER_SIZE = 8096;
+    private static final int DEFAULT_MEDIA_BUFFER_SIZE = 8192;
+    private static final int DEFAULT_UDP_BUFFER_SIZE = 8192;
     
     private final String logName;
     private final InputStream processOutput;
@@ -517,12 +517,13 @@ public class TunerOutput extends Thread
             BufferedOutputStream output = null;
             DatagramSocket socket = null;
             int bufferSize = DEFAULT_UDP_BUFFER_SIZE * 4;
+            int packetSize = 1500;
             
             try
             {
-                output = new BufferedOutputStream(this.processInput);
+                output = new BufferedOutputStream(this.processInput, bufferSize);
                 socket = new DatagramSocket(this.udpPort);
-                DatagramPacket packet = new DatagramPacket(new byte[bufferSize], bufferSize);
+                DatagramPacket packet = new DatagramPacket(new byte[1500], 1500);
                 
                 //Set revice buffer to max size.
                 socket.setReceiveBufferSize(65535);
@@ -535,6 +536,7 @@ public class TunerOutput extends Thread
                     output.write(packet.getData(), 0, packet.getLength());
                     this.transferSize += packet.getLength();
                     socket.receive(packet);
+                    
                 }
                 
                 socket.close();
