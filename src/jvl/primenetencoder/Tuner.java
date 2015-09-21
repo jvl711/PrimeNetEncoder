@@ -190,7 +190,7 @@ public class Tuner extends Thread
                         
                         if(Tuner.PROTOCOL_VERSION == "2.1")
                         {
-                        
+                            //TODO: Check to make sure we have the proper command format
                             //String tuner_name = parts[0];
                             String channel = parts[1];
                             //String time = parts[2];
@@ -201,6 +201,7 @@ public class Tuner extends Thread
                         }
                         else if(Tuner.PROTOCOL_VERSION == "3.1")
                         {
+                            //TODO: Check to make sure we have the proper command format
                             //String tuner_name = parts[0];
                             String uploadID = parts[1];
                             String channel = parts[2];
