@@ -251,6 +251,10 @@ public class PrimeNetEncoder extends Thread
             {
                 pEncoder.EchoLogs();
             }
+            else if(params[0].equalsIgnoreCase("FORCEGC"))
+            {
+                System.gc();
+            }
             else if(command.equals(""))
             {
                 
@@ -509,6 +513,38 @@ public class PrimeNetEncoder extends Thread
             }
             
         }
+        else if(parameter.equalsIgnoreCase("ffmpeg.outputbuffersize"))
+        {
+            int size;
+            
+            try
+            {
+                size = Integer.parseInt(value);
+            }
+            catch(Exception ex)
+            {
+                System.out.println("Unknown parameter.  Value must be a whole number.");
+                return;
+            }
+            
+            TunerOutput.setFfmpegOutputBuferSize(size);
+        }
+        else if(parameter.equalsIgnoreCase("ffmpeg.inputbuffersize"))
+        {
+            int size;
+            
+            try
+            {
+                size = Integer.parseInt(value);
+            }
+            catch(Exception ex)
+            {
+                System.out.println("Unknown parameter.  Value must be a whole number.");
+                return;
+            }
+            
+            TunerOutput.setFfmpegInputBuferSize(size);
+        }
         else if(parameter.equalsIgnoreCase("ffmpeg.usestdin"))
         {
             boolean useSTDIN;
@@ -569,6 +605,22 @@ public class PrimeNetEncoder extends Thread
         else if(parameter.equalsIgnoreCase("ffmpeg.delay"))
         {
             value = tuners.get(0).getffmpegDelay() + "";
+        }
+        else if(parameter.equalsIgnoreCase("ffmpeg.outputbuffersize"))
+        {
+            value = TunerOutput.getFfmpegOutputBufferSize() + "";
+        }
+        else if(parameter.equalsIgnoreCase("ffmpeg.inputbuffersize"))
+        {
+            value = TunerOutput.getFfmpegOutputBufferSize() + "";
+        }
+        else if(parameter.equalsIgnoreCase("usedirectstream"))
+        {
+            value = tuners.get(0).isDirectStream() + "";
+        }
+        else if(parameter.equalsIgnoreCase("ffmpeg.usestdin"))
+        {
+            value = tuners.get(0).isFfmpegUseSTDIN() + "";
         }
         else
         {

@@ -20,8 +20,15 @@ import java.net.Socket;
  */
 public class TunerOutput extends Thread
 {
+    private static final int DEFAULT_FFMPEG_INPUT_BUFFER_SIZE = 8192 * 4;
+    private static final int DEFAULT_FFMPEG_OUTPUT_BUFFER_SIZE = 8192 * 4;
     private static final int DEFAULT_MEDIA_BUFFER_SIZE = 8192;
-    private static final int DEFAULT_UDP_BUFFER_SIZE = 8192;
+    private static final int DEFAULT_UDP_PACKET_SIZE = 1500;
+    
+    private static int writeBufferSize = DEFAULT_MEDIA_BUFFER_SIZE;
+    private static int ffmpegInputBufferSize = DEFAULT_FFMPEG_INPUT_BUFFER_SIZE;
+    private static int ffmpegOutputBufferSize = DEFAULT_FFMPEG_OUTPUT_BUFFER_SIZE;
+    private static int udpPacketSize = DEFAULT_UDP_PACKET_SIZE;
     
     private final String logName;
     private final InputStream processOutput;
@@ -38,7 +45,7 @@ public class TunerOutput extends Thread
     //private BufferedInputStream input;
     private String mediaServerIPAddress;
     private long fileSize;
-    private static int writeBufferSize = DEFAULT_MEDIA_BUFFER_SIZE;
+    
     
     
     private TunerOutputWatcher outputWatcher;
@@ -173,7 +180,7 @@ public class TunerOutput extends Thread
             Socket server = new Socket(this.mediaServerIPAddress, 7818);
             output = new BufferedOutputStream(server.getOutputStream());
             sinput = new BufferedReader(new InputStreamReader(server.getInputStream()));
-            input = new BufferedInputStream(this.processOutput);
+            input = new BufferedInputStream(this.processOutput, TunerOutput.getFfmpegOutputBufferSize());
             
             
             PrimeNetEncoder.writeLogln("Sending write open command", logName);
@@ -259,7 +266,7 @@ public class TunerOutput extends Thread
         BufferedInputStream input = null;
         DatagramSocket socket = null;
         
-        System.out.println("SENDING STREAM RAW!!!");
+        //System.out.println("SENDING STREAM RAW!!!");
         
         //open up a channel to the MediaServer port (8171). It requests permission to stream to the file via WRITEOPEN filename UploadID\r\n. If sage recognizes the uploadID, it allows it, and awaits "WRITE offset length\r\nDATA".
         try 
@@ -268,7 +275,7 @@ public class TunerOutput extends Thread
             Socket server = new Socket(this.mediaServerIPAddress, 7818);
             output = new BufferedOutputStream(server.getOutputStream());
             sinput = new BufferedReader(new InputStreamReader(server.getInputStream()));
-            input = new BufferedInputStream(this.processOutput);
+            input = new BufferedInputStream(this.processOutput, TunerOutput.getFfmpegInputBufferSize());
             
             PrimeNetEncoder.writeLogln("Sending write open command", logName);
             output.write(("WRITEOPEN " + this.fileNamePath + " " + this.uploadID + "\r\n").getBytes(PrimeNetEncoder.CHARACTER_ENCODING));
@@ -303,7 +310,7 @@ public class TunerOutput extends Thread
             }
             
             socket = new DatagramSocket(this.updPort);
-            DatagramPacket packet = new DatagramPacket(new byte[DEFAULT_MEDIA_BUFFER_SIZE * 4], DEFAULT_MEDIA_BUFFER_SIZE * 4);
+            DatagramPacket packet = new DatagramPacket(new byte[TunerOutput.getUDPPacketSize()], TunerOutput.getUDPPacketSize());
             
             socket.setReceiveBufferSize(65535);
             socket.setSoTimeout(12000); //TODO: Set a global timeout for the UDP
@@ -379,7 +386,7 @@ public class TunerOutput extends Thread
         
         try
         {
-            input = new BufferedInputStream(this.processOutput);
+            input = new BufferedInputStream(this.processOutput, TunerOutput.getFfmpegInputBufferSize());
             outputFile = new FileOutputStream(new File(this.fileNamePath));
 
             byte[] buffer = new byte[writeBufferSize];
@@ -442,7 +449,7 @@ public class TunerOutput extends Thread
      * time.
      * @param size Size of the write buffer
      */
-    public static void setWriteBufferSize(int size)
+    public static void setMediaServerWriteSize(int size)
     {
         TunerOutput.writeBufferSize = size;
     }
@@ -452,9 +459,60 @@ public class TunerOutput extends Thread
      * time.
      * @return Size of the write buffer
      */
-    public static int getWriteBufferSize()
+    public static int getMediaServerWriteSize()
     {
         return TunerOutput.writeBufferSize;
+    }
+    
+    public static int getFfmpegInputBufferSize()
+    {
+        return TunerOutput.ffmpegInputBufferSize;
+    }
+    
+    public static void setFfmpegInputBuferSize(int size)
+    {
+        if(size < TunerOutput.DEFAULT_FFMPEG_INPUT_BUFFER_SIZE)
+        {
+            TunerOutput.ffmpegInputBufferSize = TunerOutput.DEFAULT_FFMPEG_INPUT_BUFFER_SIZE;
+        }
+        else
+        {
+            TunerOutput.ffmpegInputBufferSize = size;
+        }
+    }
+    
+    public static int getFfmpegOutputBufferSize()
+    {
+        return TunerOutput.ffmpegOutputBufferSize;
+    }
+    
+    public static void setFfmpegOutputBuferSize(int size)
+    {
+        if(size < TunerOutput.DEFAULT_FFMPEG_OUTPUT_BUFFER_SIZE)
+        {
+            TunerOutput.ffmpegOutputBufferSize = TunerOutput.DEFAULT_FFMPEG_OUTPUT_BUFFER_SIZE;
+        }
+        else
+        {
+            TunerOutput.ffmpegOutputBufferSize = size;
+        }
+    }
+    
+    public static void setUDPPacketSize(int size)
+    {
+        if(size < TunerOutput.udpPacketSize)
+        {
+            TunerOutput.udpPacketSize = TunerOutput.DEFAULT_UDP_PACKET_SIZE;
+        }
+        else
+        {
+            TunerOutput.udpPacketSize = size;
+        }
+    }
+    
+    public static int getUDPPacketSize()
+    {
+        return TunerOutput.udpPacketSize;
     }
     
     public String getLogName()
@@ -516,28 +574,23 @@ public class TunerOutput extends Thread
             PrimeNetEncoder.writeLogln("TunerBridge thread started udpPort: " + udpPort, logName);
             BufferedOutputStream output = null;
             DatagramSocket socket = null;
-            int bufferSize = DEFAULT_UDP_BUFFER_SIZE * 4;
-            int packetSize = 1500;
             
             try
             {
-                output = new BufferedOutputStream(this.processInput, bufferSize);
+                output = new BufferedOutputStream(this.processInput, TunerOutput.getFfmpegInputBufferSize());
                 socket = new DatagramSocket(this.udpPort);
-                DatagramPacket packet = new DatagramPacket(new byte[1500], 1500);
-                
+                DatagramPacket packet = new DatagramPacket(new byte[TunerOutput.getUDPPacketSize()], TunerOutput.getUDPPacketSize());
                 
                 //Set revice buffer to max size.
                 socket.setReceiveBufferSize(65535);
                 socket.setSoTimeout(12000); //TODO: Set global udp timeout
-                
                 socket.receive(packet);
 
                 while (packet.getLength() > 0 && this.keepProcessing) 
                 {
                     output.write(packet.getData(), 0, packet.getLength());
                     this.transferSize += packet.getLength();
-                    socket.receive(packet);
-                    
+                    socket.receive(packet);    
                 }
                 
                 socket.close();
