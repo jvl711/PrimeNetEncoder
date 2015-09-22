@@ -359,6 +359,14 @@ public class PrimeNetEncoder extends Thread
                     System.out.println("Channel: " + tuner.getRecordingChannel());
                     System.out.println("Quality: " + tuner.getRecordingQuality());
                     
+                    //Show tuner bridge statistics
+                    if(tuner.getTunerOutput() != null && tuner.getTunerOutput().getTunerBridge() != null)
+                    {
+                        System.out.println("Current packet time: " + tuner.getTunerOutput().getTunerBridge().getPacketTime() + "ms");
+                        System.out.println("Average packet receive time: " + tuner.getTunerOutput().getTunerBridge().getAveragePacketReceiveTime() + "ms");
+                        System.out.println("Total packets received late: " + tuner.getTunerOutput().getTunerBridge().getTotalLatePackets() + "ms");
+                    }
+                    
                     if(tuner.isTunerLocked())
                     {
                         System.out.println("Tuner locked: True");
@@ -563,6 +571,21 @@ public class PrimeNetEncoder extends Thread
             {
                 tuners.get(i).setFfmegUseSTDIN(useSTDIN);
             }
+        }else if(parameter.equalsIgnoreCase("mediaserver.outputbuffersize"))
+        {
+            int size;
+            
+            try
+            {
+                size = Integer.parseInt(value);
+            }
+            catch(Exception ex)
+            {
+                System.out.println("Unknown parameter.  Value must be a whole number.");
+                return;
+            }
+            
+            TunerOutput.setMediaServerOutputBufferSize(size);
         }
         else if(parameter.equalsIgnoreCase("usedirectstream"))
         {
@@ -588,7 +611,6 @@ public class PrimeNetEncoder extends Thread
             System.out.println("Unknown variable.");
         }
     }
-    
     
     private void getTunerVariable(String parameter)
     {

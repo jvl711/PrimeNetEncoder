@@ -22,10 +22,12 @@ public class TunerOutput extends Thread
 {
     private static final int DEFAULT_FFMPEG_INPUT_BUFFER_SIZE = 8192 * 4;
     private static final int DEFAULT_FFMPEG_OUTPUT_BUFFER_SIZE = 8192 * 4;
-    private static final int DEFAULT_MEDIA_BUFFER_SIZE = 8192;
+    private static final int DEFAULT_MEDIASERVER_OUTPUT_BUFFER_SIZE = 8192 * 4;
+    private static final int DEFAULT_MEDIASERVER_SEND_SIZE = 8192;
     private static final int DEFAULT_UDP_PACKET_SIZE = 1500;
     
-    private static int writeBufferSize = DEFAULT_MEDIA_BUFFER_SIZE;
+    private static int mediaServerSendSize = DEFAULT_MEDIASERVER_SEND_SIZE;
+    private static int mediaServerOutputBufferSize = DEFAULT_MEDIASERVER_OUTPUT_BUFFER_SIZE;
     private static int ffmpegInputBufferSize = DEFAULT_FFMPEG_INPUT_BUFFER_SIZE;
     private static int ffmpegOutputBufferSize = DEFAULT_FFMPEG_OUTPUT_BUFFER_SIZE;
     private static int udpPacketSize = DEFAULT_UDP_PACKET_SIZE;
@@ -178,7 +180,7 @@ public class TunerOutput extends Thread
             //TODO: MediaServer port needs to be in config file
             String response;
             Socket server = new Socket(this.mediaServerIPAddress, 7818);
-            output = new BufferedOutputStream(server.getOutputStream());
+            output = new BufferedOutputStream(server.getOutputStream(), TunerOutput.getMediaServerOutputBufferSize());
             sinput = new BufferedReader(new InputStreamReader(server.getInputStream()));
             input = new BufferedInputStream(this.processOutput, TunerOutput.getFfmpegOutputBufferSize());
             
@@ -199,7 +201,7 @@ public class TunerOutput extends Thread
                 return;
             }
             
-            byte[] buffer = new byte[writeBufferSize];
+            byte[] buffer = new byte[TunerOutput.getMediaServerSendSize()];
             int len1;
             
             while ( (len1 = input.read(buffer)) > 0 && keepProcessing) 
@@ -273,7 +275,7 @@ public class TunerOutput extends Thread
         {   
             String response;
             Socket server = new Socket(this.mediaServerIPAddress, 7818);
-            output = new BufferedOutputStream(server.getOutputStream());
+            output = new BufferedOutputStream(server.getOutputStream(), TunerOutput.getMediaServerOutputBufferSize());
             sinput = new BufferedReader(new InputStreamReader(server.getInputStream()));
             input = new BufferedInputStream(this.processOutput, TunerOutput.getFfmpegInputBufferSize());
             
@@ -389,7 +391,7 @@ public class TunerOutput extends Thread
             input = new BufferedInputStream(this.processOutput, TunerOutput.getFfmpegInputBufferSize());
             outputFile = new FileOutputStream(new File(this.fileNamePath));
 
-            byte[] buffer = new byte[writeBufferSize];
+            byte[] buffer = new byte[mediaServerSendSize];
             int len1;
         
             while ( (len1 = input.read(buffer)) > 0 && keepProcessing) 
@@ -444,6 +446,11 @@ public class TunerOutput extends Thread
         return this.fileSize;
     }
     
+    public TunerBridge getTunerBridge() 
+    {
+        return tunerBridge;
+    }
+    
     /**
      * The amount of data that is sent to SageTV MediaServer or file at one
      * time.
@@ -451,7 +458,7 @@ public class TunerOutput extends Thread
      */
     public static void setMediaServerWriteSize(int size)
     {
-        TunerOutput.writeBufferSize = size;
+        TunerOutput.mediaServerSendSize = size;
     }
     
     /**
@@ -461,7 +468,7 @@ public class TunerOutput extends Thread
      */
     public static int getMediaServerWriteSize()
     {
-        return TunerOutput.writeBufferSize;
+        return TunerOutput.mediaServerSendSize;
     }
     
     public static int getFfmpegInputBufferSize()
@@ -500,7 +507,7 @@ public class TunerOutput extends Thread
     
     public static void setUDPPacketSize(int size)
     {
-        if(size < TunerOutput.udpPacketSize)
+        if(size < TunerOutput.DEFAULT_UDP_PACKET_SIZE)
         {
             TunerOutput.udpPacketSize = TunerOutput.DEFAULT_UDP_PACKET_SIZE;
         }
@@ -513,6 +520,28 @@ public class TunerOutput extends Thread
     public static int getUDPPacketSize()
     {
         return TunerOutput.udpPacketSize;
+    }
+    
+    public static void setMediaServerOutputBufferSize(int size)
+    {
+        if(size < TunerOutput.DEFAULT_MEDIASERVER_OUTPUT_BUFFER_SIZE)
+        {
+            TunerOutput.mediaServerOutputBufferSize = TunerOutput.DEFAULT_MEDIASERVER_OUTPUT_BUFFER_SIZE;
+        }
+        else
+        {
+            TunerOutput.mediaServerOutputBufferSize = size;
+        }
+    }
+    
+    public static int getMediaServerOutputBufferSize()
+    {
+        return TunerOutput.mediaServerOutputBufferSize;
+    }
+    
+    public static int getMediaServerSendSize()
+    {
+        return TunerOutput.mediaServerSendSize;
     }
     
     public String getLogName()
@@ -551,7 +580,7 @@ public class TunerOutput extends Thread
         }
     }
     
-    private class TunerBridge extends Thread
+    public class TunerBridge extends Thread
     {
         private final OutputStream processInput;
         private final int udpPort;
@@ -559,13 +588,30 @@ public class TunerOutput extends Thread
         private boolean keepProcessing;
         private final String logName;
         
-        public TunerBridge(OutputStream processInput, int udpPort, String logName)
+        /*
+        * Variables for calculating average packet processing and receieve time
+        */
+        private long numberOfPacketsReceived;
+        private long totalPacketReceiveTime;
+        private long averagePacketReceiveTime;
+        private long lastPacketReceiveTime;
+        private int packetTime;
+        private long totalLatePackets;
+        
+        private TunerBridge(OutputStream processInput, int udpPort, String logName)
         {
             this.processInput = processInput;
             this.udpPort = udpPort;
             this.logName = logName;
             this.transferSize = 0;
             this.keepProcessing = true;
+            
+            this.numberOfPacketsReceived = 0;
+            this.totalPacketReceiveTime = 0;
+            this.averagePacketReceiveTime = 0;
+            this.totalLatePackets = 0;
+            this.lastPacketReceiveTime = 0;
+            this.packetTime = 0;
         }
         
         @Override
@@ -585,6 +631,7 @@ public class TunerOutput extends Thread
                 socket.setReceiveBufferSize(65535);
                 socket.setSoTimeout(12000); //TODO: Set global udp timeout
                 socket.receive(packet);
+                this.logPacketReceive();
 
                 while (packet.getLength() > 0 && this.keepProcessing) 
                 {
@@ -621,6 +668,28 @@ public class TunerOutput extends Thread
             }
         }
      
+        private void logPacketReceive()
+        {
+            long currentPacketReceiveTime = System.currentTimeMillis();
+            
+            if(this.lastPacketReceiveTime != 0)
+            {
+                this.packetTime = (int)(this.lastPacketReceiveTime - currentPacketReceiveTime);
+                this.numberOfPacketsReceived++;
+                this.totalPacketReceiveTime += this.packetTime;
+                this.averagePacketReceiveTime = this.totalPacketReceiveTime / this.numberOfPacketsReceived;
+                
+                if(this.packetTime > 2 * averagePacketReceiveTime)
+                {
+                    System.out.println("Error:  Last HDHomeRun packet receive time is stiwce the average!");
+                    PrimeNetEncoder.writeLogln("Error:  Last HDHomeRun packet receive time is stiwce the average!", this.logName);
+                    this.totalLatePackets++;
+                }
+            }
+            
+            this.lastPacketReceiveTime = currentPacketReceiveTime;
+        }
+        
         public void stopProcessing()
         {
             this.keepProcessing = false;
@@ -631,6 +700,23 @@ public class TunerOutput extends Thread
             return this.transferSize;
         }
         
+        public long getAveragePacketReceiveTime() 
+        {
+            return averagePacketReceiveTime;
+        }
+
+        public long getTotalLatePackets() 
+        {
+            return totalLatePackets;
+        }
+
+        public int getPacketTime() 
+        {
+            return packetTime;
+        }
+        
+        
+
     }
     
     /**

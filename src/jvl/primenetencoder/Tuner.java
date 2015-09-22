@@ -968,4 +968,11 @@ public class Tuner extends Thread
     {
         this.directStream = value;
     }
+
+    public TunerOutput getTunerOutput() 
+    {
+        return tunerOutput;
+    }
+    
+    
 }
