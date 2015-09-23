@@ -359,35 +359,43 @@ public class PrimeNetEncoder extends Thread
                     System.out.println("Channel: " + tuner.getRecordingChannel());
                     System.out.println("Quality: " + tuner.getRecordingQuality());
                     
+                    
                     //Show tuner bridge statistics
                     if(tuner.getTunerOutput() != null && tuner.getTunerOutput().getTunerBridge() != null)
                     {
-                        System.out.println("Current packet time: " + tuner.getTunerOutput().getTunerBridge().getPacketTime() + "ms");
-                        System.out.println("Average packet receive time: " + tuner.getTunerOutput().getTunerBridge().getAveragePacketReceiveTime() + "ms");
-                        System.out.println("Total packets received late: " + tuner.getTunerOutput().getTunerBridge().getTotalLatePackets() + "ms");
+                        System.out.println("\nPerformance Stats");
+                        System.out.println("\tCurrent packet time (10x): " + tuner.getTunerOutput().getTunerBridge().getPacketTime() + "ms");
+                        System.out.println("\tAverage packet receive time (10x): " + tuner.getTunerOutput().getTunerBridge().getAveragePacketReceiveTime() + "ms");
+                        System.out.println("\tTotal packets received late (10x): " + tuner.getTunerOutput().getTunerBridge().getTotalLatePackets());
+                        System.out.println("\tFFmpeg output buffer size (STDIN): " + tuner.getTunerOutput().getTunerBridge().getFFmpegOutputBufferLimit());
+                        System.out.println("\tFFmpeg output buffer count (STDIN): " + tuner.getTunerOutput().getTunerBridge().getFFmpegOutputBufferCount());
                     }
                     
                     if(tuner.isTunerLocked())
                     {
-                        System.out.println("Tuner locked: True");
-                        System.out.println("lock source: " + tuner.getTunerLockSource());
+                        System.out.println("\nTuner Lock Info");
+                        System.out.println("\tTuner locked: True");
+                        System.out.println("\tlock source: " + tuner.getTunerLockSource());
                     }
                     else
                     {
-                        System.out.println("Tuner locked: False");
+                        System.out.println("\nTuner Lock Info");
+                        System.out.println("\tTuner locked: False");
                     }
                     
                     if(tuner.isTranscodeEnabled())
                     {
-                        System.out.println("Transcoding: Enabled");
-                        System.out.println("Transcode Bitrate: " + tuner.getAverageBitrate());
-                        System.out.println("Transcode Scaling: " + tuner.getScaling());
-                        System.out.println("Transcode Preset: " + tuner.getTranscodePreset());
-                        System.out.println("Deinterlace: " + tuner.isDeinterlaceEnabled());
+                        System.out.println("\nTranscoding Info");
+                        System.out.println("\tTranscoding: Enabled");
+                        System.out.println("\tTranscode Bitrate: " + tuner.getAverageBitrate());
+                        System.out.println("\tTranscode Scaling: " + tuner.getScaling());
+                        System.out.println("\tTranscode Preset: " + tuner.getTranscodePreset());
+                        System.out.println("\tDeinterlace: " + tuner.isDeinterlaceEnabled());
                     }
                     else
                     {
-                        System.out.println("Transcoding: False");
+                        System.out.println("\nTranscoding Info");
+                        System.out.println("\tTranscoding: False");
                     }
                     
                 }

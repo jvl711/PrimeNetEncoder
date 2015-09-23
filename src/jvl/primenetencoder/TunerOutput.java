@@ -12,6 +12,7 @@ import java.io.OutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.Socket;
+import jvl.io.AdvancedOutputStream;
 
 /**
  * This class is responsible for transferring the stream data from the source
@@ -582,6 +583,7 @@ public class TunerOutput extends Thread
     
     public class TunerBridge extends Thread
     {
+        private AdvancedOutputStream output = null;
         private final OutputStream processInput;
         private final int udpPort;
         private long transferSize;
@@ -618,13 +620,13 @@ public class TunerOutput extends Thread
         public void run()
         {
             PrimeNetEncoder.writeLogln("TunerBridge thread started udpPort: " + udpPort, logName);
-            BufferedOutputStream output = null;
+            
             DatagramSocket socket = null;
             long packets = 0;
             
             try
             {
-                output = new BufferedOutputStream(this.processInput, TunerOutput.getFfmpegInputBufferSize());
+                output = new AdvancedOutputStream(this.processInput, TunerOutput.getFfmpegInputBufferSize());
                 socket = new DatagramSocket(this.udpPort);
                 DatagramPacket packet = new DatagramPacket(new byte[TunerOutput.getUDPPacketSize()], TunerOutput.getUDPPacketSize());
                 
@@ -643,7 +645,7 @@ public class TunerOutput extends Thread
                     packets++;
                     if(packets % 10 == 0) //Log every ten packets
                     {
-                        this.logPacketReceive();
+                        this.logPacketReceive();       
                     }
                 }
                 
@@ -689,8 +691,13 @@ public class TunerOutput extends Thread
                 //Log an error when the packet is ten times slower
                 if(this.packetTime > (this.averagePacketReceiveTime * 10))
                 {
-                    System.out.println("Warning: PacketTime: " + this.packetTime + " Average: " + this.averagePacketReceiveTime);
+                    //System.out.println("Warning: PacketTime: " + this.packetTime + " Average: " + this.averagePacketReceiveTime);
                     PrimeNetEncoder.writeLogln("Warning:  Last 10 HDHomeRun packets receive time is 10 times the average!", this.logName);
+                    PrimeNetEncoder.writeLogln("\tPacket Receive Time: " + this.packetTime, this.logName);
+                    PrimeNetEncoder.writeLogln("\tAverage Packet Receive Time: " + this.averagePacketReceiveTime, this.logName);
+                    PrimeNetEncoder.writeLogln("\tFFmpeg Output Buffer Limit: " + this.output.getLimit(), this.logName);
+                    PrimeNetEncoder.writeLogln("\tFFmpeg Output Buffer Count: " + this.output.getCount(), this.logName);
+                    
                     this.totalLatePackets++;
                 }
             }
@@ -723,7 +730,15 @@ public class TunerOutput extends Thread
             return packetTime;
         }
         
+        public int getFFmpegOutputBufferLimit()
+        {
+            return this.output.getLimit();
+        }
         
+        public int getFFmpegOutputBufferCount()
+        {
+            return this.output.getCount();
+        }
 
     }
     
