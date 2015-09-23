@@ -1,13 +1,7 @@
-
 package jvl.primenetencoder;
 
-//import java.util.Properties;
-//import java.io.InputStream;
-//import java.io.FileInputStream;
-//import java.io.OutputStream;
 import java.io.FileOutputStream;
 import java.io.File;
-//import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -15,8 +9,8 @@ import java.util.Calendar;
 import java.util.Date;
 import jvl.util.Property;
 
+
 /*
- *  TODO: Added a quit command that properly shuts down all threads connections and recordings. It should stop from quiting if there is an active recording.
  *  TODO: Add more propertys to the set command
  *  TODO: Change set command to be in the format set [variable]=[value]
  */
@@ -74,6 +68,10 @@ public class PrimeNetEncoder extends Thread
             this.discoveryPort = props.getProperty("discovery.port", PrimeNetEncoder.DEFAULT_DISCOVERY_PORT);
             this.discoveryEnabled = props.getProperty("discovery.enabled", true);
             boolean useMediaServer = props.getProperty("mediaserver.transfer", true);
+            
+            TunerOutput.setFfmpegOutputBuferSize(props.getProperty("ffmpeg.outputbuffersize", TunerOutput.DEFAULT_FFMPEG_OUTPUT_BUFFER_SIZE));
+            TunerOutput.setFfmpegInputBuferSize(props.getProperty("ffmpeg.inputbuffersize", TunerOutput.DEFAULT_FFMPEG_INPUT_BUFFER_SIZE));
+            TunerOutput.setMediaServerOutputBufferSize(props.getProperty("mediaserver.outputbuffersize", TunerOutput.DEFAULT_MEDIASERVER_OUTPUT_BUFFER_SIZE));
 
             for(int i = 0; i < tunerCount; i++)
             {
@@ -250,6 +248,35 @@ public class PrimeNetEncoder extends Thread
             else if(params[0].equalsIgnoreCase("ECHOLOGS"))
             {
                 pEncoder.EchoLogs();
+            }
+            else if(params[0].equalsIgnoreCase("QUIT"))
+            {
+                boolean active = false;
+                
+                for(int i = 0; i < pEncoder.tuners.size(); i++)
+                {
+                    if(pEncoder.tuners.get(i).isRecording())
+                    {
+                        active = true;
+                    }
+                }
+                
+                if(active)
+                {
+                    System.out.println("Cannot exit while there is active recordings.");
+                }
+                else
+                {
+                    for(int i = 0; i < pEncoder.tuners.size(); i++)
+                    {
+                        if(pEncoder.tuners.get(i).isRecording())
+                        {
+                            //TODO: Add a stop processing
+                        }
+                    }
+                    
+                    break;
+                }
             }
             else if(params[0].equalsIgnoreCase("FORCEGC"))
             {
@@ -641,6 +668,10 @@ public class PrimeNetEncoder extends Thread
             value = TunerOutput.getFfmpegOutputBufferSize() + "";
         }
         else if(parameter.equalsIgnoreCase("ffmpeg.inputbuffersize"))
+        {
+            value = TunerOutput.getFfmpegOutputBufferSize() + "";
+        }
+        else if(parameter.equalsIgnoreCase("mediaserver.outputbuffersize"))
         {
             value = TunerOutput.getFfmpegOutputBufferSize() + "";
         }

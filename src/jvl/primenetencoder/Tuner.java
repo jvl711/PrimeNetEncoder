@@ -190,26 +190,42 @@ public class Tuner extends Thread
                         
                         if(Tuner.PROTOCOL_VERSION == "2.1")
                         {
-                            //TODO: Check to make sure we have the proper command format
-                            //String tuner_name = parts[0];
-                            String channel = parts[1];
-                            //String time = parts[2];
-                            String filePath = parts[3];
-                            String quality = parts[4];
+                            if(parts.length != 5)
+                            {
+                                System.out.println("Error: SageTV start recording command does not appear to be in the proper format.  Please attempt restarting SageTV.");
+                                output.write("ERROR\r\n");
+                                output.flush();
+                            }
+                            else
+                            {
+                                //String tuner_name = parts[0];
+                                String channel = parts[1];
+                                //String time = parts[2];
+                                String filePath = parts[3];
+                                String quality = parts[4];
 
-                            this.startRecording(channel, null, filePath, quality);
+                                this.startRecording(channel, null, filePath, quality);
+                            }
                         }
                         else if(Tuner.PROTOCOL_VERSION == "3.1")
                         {
-                            //TODO: Check to make sure we have the proper command format
-                            //String tuner_name = parts[0];
-                            String uploadID = parts[1];
-                            String channel = parts[2];
-                            //Time parts[3]
-                            String filePath = parts[4];
-                            String quality = parts[5];
+                            if(parts.length != 6)
+                            {
+                                System.out.println("Error: SageTV start recording command does not appear to be in the proper format.  Please attempt restarting SageTV.");
+                                output.write("ERROR\r\n");
+                                output.flush();
+                            }
+                            else
+                            {
+                                //String tuner_name = parts[0];
+                                String uploadID = parts[1];
+                                String channel = parts[2];
+                                //Time parts[3]
+                                String filePath = parts[4];
+                                String quality = parts[5];
 
-                            this.startRecording(channel, uploadID, filePath, quality);
+                                this.startRecording(channel, uploadID, filePath, quality);
+                            }
                         }
                         output.write("OK\r\n");
                         output.flush();

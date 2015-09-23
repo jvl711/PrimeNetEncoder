@@ -21,11 +21,11 @@ import jvl.io.AdvancedOutputStream;
  */
 public class TunerOutput extends Thread
 {
-    private static final int DEFAULT_FFMPEG_INPUT_BUFFER_SIZE = 8192 * 4;
-    private static final int DEFAULT_FFMPEG_OUTPUT_BUFFER_SIZE = 8192 * 4;
-    private static final int DEFAULT_MEDIASERVER_OUTPUT_BUFFER_SIZE = 8192 * 4;
-    private static final int DEFAULT_MEDIASERVER_SEND_SIZE = 8192;
-    private static final int DEFAULT_UDP_PACKET_SIZE = 1500;
+    public static final int DEFAULT_FFMPEG_INPUT_BUFFER_SIZE = 32768;
+    public static final int DEFAULT_FFMPEG_OUTPUT_BUFFER_SIZE = 32768;
+    public static final int DEFAULT_MEDIASERVER_OUTPUT_BUFFER_SIZE = 32768;
+    public static final int DEFAULT_MEDIASERVER_SEND_SIZE = 8192;
+    public static final int DEFAULT_UDP_PACKET_SIZE = 1500;
     
     private static int mediaServerSendSize = DEFAULT_MEDIASERVER_SEND_SIZE;
     private static int mediaServerOutputBufferSize = DEFAULT_MEDIASERVER_OUTPUT_BUFFER_SIZE;
@@ -45,11 +45,8 @@ public class TunerOutput extends Thread
     private final boolean useSTDINStream;
     
     private boolean keepProcessing;
-    //private BufferedInputStream input;
     private String mediaServerIPAddress;
     private long fileSize;
-    
-    
     
     private TunerOutputWatcher outputWatcher;
     private TunerBridge tunerBridge;
