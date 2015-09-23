@@ -394,8 +394,8 @@ public class PrimeNetEncoder extends Thread
                         System.out.println("\tCurrent packet time (10x): " + tuner.getTunerOutput().getTunerBridge().getPacketTime() + "ms");
                         System.out.println("\tAverage packet receive time (10x): " + tuner.getTunerOutput().getTunerBridge().getAveragePacketReceiveTime() + "ms");
                         System.out.println("\tTotal packets received late (10x): " + tuner.getTunerOutput().getTunerBridge().getTotalLatePackets());
-                        System.out.println("\tFFmpeg output buffer size (STDIN): " + tuner.getTunerOutput().getTunerBridge().getFFmpegOutputBufferLimit());
-                        System.out.println("\tFFmpeg output buffer count (STDIN): " + tuner.getTunerOutput().getTunerBridge().getFFmpegOutputBufferCount());
+                        System.out.println("\tFFmpeg input buffer size (STDIN): " + tuner.getTunerOutput().getTunerBridge().getFFmpegOutputBufferLimit());
+                        System.out.println("\tFFmpeg input buffer count (STDIN): " + tuner.getTunerOutput().getTunerBridge().getFFmpegOutputBufferCount());
                     }
                     
                     if(tuner.isTunerLocked())
@@ -606,7 +606,8 @@ public class PrimeNetEncoder extends Thread
             {
                 tuners.get(i).setFfmegUseSTDIN(useSTDIN);
             }
-        }else if(parameter.equalsIgnoreCase("mediaserver.outputbuffersize"))
+        }
+        else if(parameter.equalsIgnoreCase("mediaserver.outputbuffersize"))
         {
             int size;
             
@@ -645,6 +646,16 @@ public class PrimeNetEncoder extends Thread
         {
             System.out.println("Unknown variable.");
         }
+        
+        try
+        {
+            PrimeNetEncoder.props.setProperty(parameter.toLowerCase(), value);
+        }
+        catch(Exception ex)
+        {
+            System.out.println("Error: Unexpected error saving property.");
+        }
+                
     }
     
     private void getTunerVariable(String parameter)

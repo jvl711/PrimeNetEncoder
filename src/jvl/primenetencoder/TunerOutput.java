@@ -275,7 +275,7 @@ public class TunerOutput extends Thread
             Socket server = new Socket(this.mediaServerIPAddress, 7818);
             output = new BufferedOutputStream(server.getOutputStream(), TunerOutput.getMediaServerOutputBufferSize());
             sinput = new BufferedReader(new InputStreamReader(server.getInputStream()));
-            input = new BufferedInputStream(this.processOutput, TunerOutput.getFfmpegInputBufferSize());
+            input = new BufferedInputStream(this.processOutput, TunerOutput.getFfmpegOutputBufferSize());
             
             PrimeNetEncoder.writeLogln("Sending write open command", logName);
             output.write(("WRITEOPEN " + this.fileNamePath + " " + this.uploadID + "\r\n").getBytes(PrimeNetEncoder.CHARACTER_ENCODING));
@@ -386,7 +386,7 @@ public class TunerOutput extends Thread
         
         try
         {
-            input = new BufferedInputStream(this.processOutput, TunerOutput.getFfmpegInputBufferSize());
+            input = new BufferedInputStream(this.processOutput, TunerOutput.getFfmpegOutputBufferSize());
             outputFile = new FileOutputStream(new File(this.fileNamePath));
 
             byte[] buffer = new byte[mediaServerSendSize];
