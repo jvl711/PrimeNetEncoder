@@ -620,6 +620,7 @@ public class TunerOutput extends Thread
             PrimeNetEncoder.writeLogln("TunerBridge thread started udpPort: " + udpPort, logName);
             BufferedOutputStream output = null;
             DatagramSocket socket = null;
+            long packets = 0;
             
             try
             {
@@ -632,12 +633,18 @@ public class TunerOutput extends Thread
                 socket.setSoTimeout(12000); //TODO: Set global udp timeout
                 socket.receive(packet);
                 this.logPacketReceive();
+                packets++;
 
                 while (packet.getLength() > 0 && this.keepProcessing) 
                 {
                     output.write(packet.getData(), 0, packet.getLength());
                     this.transferSize += packet.getLength();
-                    socket.receive(packet);    
+                    socket.receive(packet);
+                    packets++;
+                    if(packets % 10 == 0) //Log every ten packets
+                    {
+                        this.logPacketReceive();
+                    }
                 }
                 
                 socket.close();
@@ -674,15 +681,16 @@ public class TunerOutput extends Thread
             
             if(this.lastPacketReceiveTime != 0)
             {
-                this.packetTime = (int)(this.lastPacketReceiveTime - currentPacketReceiveTime);
-                this.numberOfPacketsReceived++;
-                this.totalPacketReceiveTime += this.packetTime;
+                this.packetTime = (int)(currentPacketReceiveTime - this.lastPacketReceiveTime);
+                this.numberOfPacketsReceived = this.numberOfPacketsReceived + 1;
+                this.totalPacketReceiveTime = this.totalPacketReceiveTime + this.packetTime;
                 this.averagePacketReceiveTime = this.totalPacketReceiveTime / this.numberOfPacketsReceived;
                 
-                if(this.packetTime > 2 * averagePacketReceiveTime)
+                //Log an error when the packet is ten times slower
+                if(this.packetTime > (this.averagePacketReceiveTime * 10))
                 {
-                    System.out.println("Error:  Last HDHomeRun packet receive time is stiwce the average!");
-                    PrimeNetEncoder.writeLogln("Error:  Last HDHomeRun packet receive time is stiwce the average!", this.logName);
+                    System.out.println("Warning: PacketTime: " + this.packetTime + " Average: " + this.averagePacketReceiveTime);
+                    PrimeNetEncoder.writeLogln("Warning:  Last 10 HDHomeRun packets receive time is 10 times the average!", this.logName);
                     this.totalLatePackets++;
                 }
             }
