@@ -1,3 +1,11 @@
+VERSION 1.2.5 (RC1)
+1. Increased UDP receive buffer size to 262140
+2. Added properties for ffmpeg.outputbuffersize, ffmpeg.inputbuffersize and mediaserver.outputbuffersize
+3. Set default size for input/output buffers to 32768
+4. Added signal quality output to the STATUS command
+5. Set a short timeout on UDP read to try and reduce latency
+6. Added a PrimeNetEncoder.bat file with recommended settings to pass to java
+
 VERSION 1.2.4 (BETA)
 1. Fixed mediaserver.transfer = false.
 2. Added the ability for the OutputWatcher to reset the tuner if data is not produced in a timely fashion
