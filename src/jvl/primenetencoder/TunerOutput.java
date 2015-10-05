@@ -2,7 +2,6 @@ package jvl.primenetencoder;
 
 import java.io.InputStream;
 import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -12,6 +11,9 @@ import java.io.OutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
+
+import java.util.concurrent.LinkedTransferQueue;
 import jvl.io.AdvancedOutputStream;
 
 /**
@@ -24,7 +26,7 @@ public class TunerOutput extends Thread
     public static final int DEFAULT_FFMPEG_INPUT_BUFFER_SIZE = 32768;
     public static final int DEFAULT_FFMPEG_OUTPUT_BUFFER_SIZE = 32768;
     public static final int DEFAULT_MEDIASERVER_OUTPUT_BUFFER_SIZE = 32768;
-    public static final int DEFAULT_MEDIASERVER_SEND_SIZE = 8192;
+    public static final int DEFAULT_MEDIASERVER_SEND_SIZE = 1024;
     public static final int DEFAULT_UDP_PACKET_SIZE = 1500;
     
     private static int mediaServerSendSize = DEFAULT_MEDIASERVER_SEND_SIZE;
@@ -73,34 +75,11 @@ public class TunerOutput extends Thread
         this.processInput = processInput;
         
         this.outputWatcher = new TunerOutputWatcher(this);
+        this.outputWatcher.setName("OutputWatcher-" + this.tuner.getTunerName());
         this.tunerBridge = new TunerBridge(this, this.processInput, this.updPort, this.logName);
-        
+        this.tunerBridge.setName("TunerBridge-" + this.tuner.getTunerName());
         PrimeNetEncoder.writeLogln("Tuner output thread HDHomeRun(UDP) -> PrimeNetEncoder(STDIN) -> ffmpeg(STDOUT) -> PrimeNetEncoder -> File(CIFS/SMB)", this.logName);
     }
-    
-    //Write data to Media Server
-    /*
-    public TunerOutput(Tuner tuner, InputStream processOutput, String fileNamePath, String logName, String uploadID, String mediaServerIPAddress)
-    {
-        this.tuner = tuner;
-        this.processOutput = processOutput;
-        this.processInput = null;
-        this.uploadID = uploadID;
-        this.fileNamePath = fileNamePath;
-        this.logName = logName;
-        this.keepProcessing = true;
-        this.useMediaServer = true;
-        this.useDirectStream = false;
-        this.useSTDINStream = false;
-        this.mediaServerIPAddress = mediaServerIPAddress;
-        this.fileSize = 0;
-        
-        this.outputWatcher = new TunerOutputWatcher(this);
-        
-        PrimeNetEncoder.writeLogln("Tuner output thread constructed for UploadID: " + uploadID, this.logName);
-        PrimeNetEncoder.writeLogln("Tuner output thread HDHomeRun(UDP) -> ffmpeg(STDOUT) -> PrimeNetEncoder -> SageTV Media Server(TCP)", this.logName);
-    }
-    */
     
     //Direct write to from HDHomeRun to SageTV Media Server
     public TunerOutput(Tuner tuner, int udpPort, String fileNamePath, String logName, String uploadID, String mediaServerIPAddress)
@@ -120,6 +99,7 @@ public class TunerOutput extends Thread
         this.updPort = udpPort;
         
         this.outputWatcher = new TunerOutputWatcher(this);
+        this.outputWatcher.setName("OutputWatcher-" + this.tuner.getTunerName());
         
         PrimeNetEncoder.writeLogln("Tuner output thread constructed for UploadID: " + uploadID, this.logName);
         PrimeNetEncoder.writeLogln("Tuner output thread HDHomeRun(UDP) -> PrimeNetEncoder -> SageTV Media Server(TCP)", this.logName);
@@ -140,12 +120,12 @@ public class TunerOutput extends Thread
         this.fileSize = 0;
         this.processOutput = processOutput;
         this.processInput = processInput;
-        
         this.updPort = udpPort;
         
         this.outputWatcher = new TunerOutputWatcher(this);
+        this.outputWatcher.setName("OutputWatcher-" + this.tuner.getTunerName());
         this.tunerBridge = new TunerBridge(this, this.processInput, this.updPort, this.logName);
-        
+        this.tunerBridge.setName("TunerBridge-" + this.tuner.getTunerName());
         
         PrimeNetEncoder.writeLogln("Tuner output thread constructed for UploadID: " + uploadID, this.logName);
         PrimeNetEncoder.writeLogln("Tuner output thread HDHomeRun(UDP) -> PrimeNetEncoder(SDIN) -> ffmpeg(STDOUT) -> SageTV Media Server(TCP)", this.logName);
@@ -163,7 +143,7 @@ public class TunerOutput extends Thread
         if(this.tunerBridge.isAlive())
         {
             this.tunerBridge.stopProcessing();
-        }       
+        }
 
     }
     
@@ -207,15 +187,11 @@ public class TunerOutput extends Thread
             {
                 mediaServerOutput.write(("WRITE " + fileSize + " " + len1 + "\r\n").getBytes(PrimeNetEncoder.CHARACTER_ENCODING));
                 mediaServerOutput.write(buffer,0, len1);
-                mediaServerOutput.flush();
-                
                 fileSize += len1;
             }
             
             mediaServerOutput.write("CLOSE".getBytes(PrimeNetEncoder.CHARACTER_ENCODING));
             mediaServerOutput.write("QUIT".getBytes(PrimeNetEncoder.CHARACTER_ENCODING));
-            
-            //Write initialization info
             
         } 
         catch (IOException ex) 
@@ -552,10 +528,17 @@ public class TunerOutput extends Thread
     public void run()
     {
         
-        if(this.useSTDINStream)
+        if(this.tunerBridge != null)
         {
             this.tunerBridge.start();
         }
+        
+        /*
+        if(this.ffmpegBridge != null)
+        {
+            this.ffmpegBridge.start();
+        }
+        */
         
         this.outputWatcher.setPriority(Thread.MIN_PRIORITY);
         this.outputWatcher.start();
@@ -597,8 +580,10 @@ public class TunerOutput extends Thread
         private long totalPacketReceiveTime;
         private long averagePacketReceiveTime;
         private long lastPacketReceiveTime;
+        private long tempLastPacketReceiveTime;
         private int packetTime;
         private long totalLatePackets;
+        private LinkedTransferQueue<byte[]> hdhomerunQueue;
         
         private TunerBridge(TunerOutput tunerOutput, OutputStream processInput, int udpPort, String logName)
         {
@@ -608,12 +593,14 @@ public class TunerOutput extends Thread
             this.transferSize = 0;
             this.keepProcessing = true;
             
+            this.hdhomerunQueue = hdhomerunQueue;
             this.tunerOutput = tunerOutput;
             this.numberOfPacketsReceived = 0;
             this.totalPacketReceiveTime = 0;
             this.averagePacketReceiveTime = 0;
             this.totalLatePackets = 0;
             this.lastPacketReceiveTime = 0;
+            this.tempLastPacketReceiveTime = 0;
             this.packetTime = 0;
             this.packets = 0;
         }
@@ -622,9 +609,7 @@ public class TunerOutput extends Thread
         public void run()
         {
             PrimeNetEncoder.writeLogln("TunerBridge thread started udpPort: " + udpPort, logName);
-            
             DatagramSocket socket = null;
-            
             
             try
             {
@@ -633,28 +618,38 @@ public class TunerOutput extends Thread
                 DatagramPacket packet = new DatagramPacket(new byte[TunerOutput.getUDPPacketSize()], TunerOutput.getUDPPacketSize());
                 
                 //Set revice buffer to max size.
-                socket.setReceiveBufferSize(65535);
-                socket.setSoTimeout(12000); //TODO: Set global udp timeout
-                socket.receive(packet);
-                packets++;
-                this.logPacketReceive();
+                socket.setReceiveBufferSize(262140);
+                socket.setSoTimeout(50); //TODO: Set global udp timeout
                 
-
-                while (packet.getLength() > 0 && this.keepProcessing) 
+                try
                 {
-                    output.write(packet.getData(), 0, packet.getLength());
-                    this.transferSize += packet.getLength();
                     socket.receive(packet);
-                    packets++;
-                    this.logPacketReceive(); 
+                } catch(SocketTimeoutException ex) {}
+                
+                while (this.keepProcessing) 
+                {
+               
+                    if(packet.getLength() > 0)
+                    {
+                        output.write(packet.getData(), 0, packet.getLength());
+                        
+                        //Log packet reception
+                        this.transferSize += packet.getLength();        
+                        //this.logPacketReceive(); 
+                        packets++;
+                    }
                     
+                    try
+                    {
+                        socket.receive(packet);
+                    } catch(SocketTimeoutException ex) {}
                 }
                 
                 socket.close();
             }
             catch(Exception ex)
             {
-                PrimeNetEncoder.writeLogln("Unhandled Exception writing stream to file: " + ex.getMessage(), this.logName);
+                PrimeNetEncoder.writeLogln("Unhandled Exception in tuner bridge: " + ex.getMessage(), this.logName);
             }
             finally
             {
@@ -696,18 +691,30 @@ public class TunerOutput extends Thread
             }
             
             //Logging an error for every late packet instead 10th
-            if((currentPacketReceiveTime - this.lastPacketReceiveTime) > (this.averagePacketReceiveTime * 10) && this.lastPacketReceiveTime != 0)
+            if((currentPacketReceiveTime - this.tempLastPacketReceiveTime) > 150 && this.tempLastPacketReceiveTime != 0)
             {
-                PrimeNetEncoder.writeLogln("Warning:  Last 10 HDHomeRun packets receive time is 10 times the average!", this.logName);
-                PrimeNetEncoder.writeLogln("\tPacket Receive Time: " + this.packetTime, this.logName);
+                PrimeNetEncoder.writeLogln("Warning:  HDHomeRun packet was receive > 150ms after the previous packet!", this.logName);
+                PrimeNetEncoder.writeLogln("\tPacket Receive Time: " + (currentPacketReceiveTime - this.tempLastPacketReceiveTime), this.logName);
                 PrimeNetEncoder.writeLogln("\tAverage Packet Receive Time: " + this.averagePacketReceiveTime, this.logName);
                 PrimeNetEncoder.writeLogln("\tFFmpeg Output Buffer Limit: " + this.output.getLimit(), this.logName);
                 PrimeNetEncoder.writeLogln("\tFFmpeg Output Buffer Count: " + this.output.getCount(), this.logName);
                 PrimeNetEncoder.writeLogln("\tMediaServer Output Buffer Limit: " + this.tunerOutput.mediaServerOutput.getLimit(), this.logName);
                 PrimeNetEncoder.writeLogln("\tMediaServer Output Buffer Count: " + this.tunerOutput.mediaServerOutput.getCount(), this.logName);
+                
+                Tuner.Status status = this.tunerOutput.tuner.getTunerStatus();
+                
+                if(status != null)
+                {
+                    PrimeNetEncoder.writeLogln("\tSignal Strength: " + status.getSignalStrength() + "%", this.logName);
+                    PrimeNetEncoder.writeLogln("\tSignal Quality: " + status.getSignalQuality() + "%", this.logName);
+                    PrimeNetEncoder.writeLogln("\tSymbol Quality: " + status.getSignalQuality() + "%", this.logName);
+                    PrimeNetEncoder.writeLogln("\tSymbol Quality: " + status.getBytesPerSecond() + "bps", this.logName);
+                }
 
                 this.totalLatePackets++;
             }
+            
+            this.tempLastPacketReceiveTime = currentPacketReceiveTime;
         }
         
         public void stopProcessing()
@@ -746,6 +753,65 @@ public class TunerOutput extends Thread
         }
 
     }
+    
+    /*
+    Attempted an extra transfer thread but it did not work...
+    public class FFmpegBridge extends Thread
+    {
+        private boolean keepProcessing;
+        private String logName;
+        private LinkedTransferQueue<byte[]> hdhomerunOutputQueue;
+        private OutputStream processInput;
+        
+        public FFmpegBridge(TunerOutput tunerOutput, LinkedTransferQueue<byte[]> hdhomerunOutputQueue, OutputStream processInput, String logName)
+        {
+            this.keepProcessing = true;
+            this.hdhomerunOutputQueue = hdhomerunOutputQueue; 
+            this.processInput = processInput;
+            this.logName = logName;
+        }
+        
+        @Override
+        public void run()
+        {
+            AdvancedOutputStream output = new AdvancedOutputStream(processInput, TunerOutput.getFfmpegInputBufferSize());
+            PrimeNetEncoder.writeLogln("FFmpegBridge has started.", logName);
+            byte[] data = null;
+            
+            try
+            {
+                while(keepProcessing)
+                {
+                    data = hdhomerunOutputQueue.take();
+                    output.write(data);
+                }
+            }
+            catch(Exception ex)
+            {
+                PrimeNetEncoder.writeLogln("Unhandled Exception in hdhomerun bridge: " + ex.getMessage(), this.logName);
+                ex.printStackTrace(System.out);
+            }
+            finally
+            {
+                if(output != null)
+                {
+                    try
+                    {
+                        output.close();
+                    }
+                    catch(Exception ex) {}
+                }
+            }
+                    
+            
+        }
+        
+        public void stopProcessing()
+        {
+            keepProcessing = false;
+        }
+    }
+    */
     
     /**
     * This thread will keep track of the tuner out, and restart process if necessary.

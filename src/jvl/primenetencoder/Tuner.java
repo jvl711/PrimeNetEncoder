@@ -691,6 +691,41 @@ public class Tuner extends Thread
         return lockStatus.trim();
     }
     
+    
+    public Status getTunerStatus()
+    {
+        Status retStatus = null;
+        String status = "";
+        
+        try
+        {
+            String[] hdhomerunCmd = {this.hdhomerunconfigPath, this.id, "get" , "/tuner" + this.tunerNumber + "/status"};
+            Process hdhomerunProcess = Runtime.getRuntime().exec(hdhomerunCmd);
+            
+            BufferedReader input = new BufferedReader(new InputStreamReader(hdhomerunProcess.getInputStream()));
+            status = input.readLine();
+            
+            String[] items = status.split(" ");
+            
+            //items[0] = Channel
+            //items[1] = lock (QAM)
+            int signalStrength = Integer.parseInt(items[2].split("=")[1]);
+            int signalQuality = Integer.parseInt(items[3].split("=")[1]);
+            int symbolQuality = Integer.parseInt(items[4].split("=")[1]);
+            long bytesPerSecond = Long.parseLong(items[5].split("=")[1]);
+            int packetsPerSecond = Integer.parseInt(items[3].split("=")[1]);
+
+            retStatus = new Status(signalStrength, signalQuality, symbolQuality, bytesPerSecond, packetsPerSecond);
+        }
+        catch(IOException ex)
+        {
+            System.out.println("Unexpected Error: Error getting status from HDHomeRun_config " + ex.getMessage());
+        }
+        
+        return retStatus;
+    }
+    
+    
     private long getFileSize(String filePath)
     {
         long size = 0;
@@ -989,6 +1024,50 @@ public class Tuner extends Thread
     {
         return tunerOutput;
     }
+
     
+    public class Status
+    {
+        private int signalStrength;
+        private int signalQuality;
+        private int symbolQuality;
+        private long bytesPerSecond;
+        private int packetsPerSecond;
+        
+        public Status(int signalStrength, int signalQuality, int symbolQuality, long bytesPerSecond, int packetsPerSecond)
+        {
+            this.signalStrength = signalStrength;
+            this.signalQuality = signalQuality;
+            this.symbolQuality = symbolQuality;
+            this.bytesPerSecond = bytesPerSecond;
+            this.packetsPerSecond = packetsPerSecond;
+        }
+
+        public int getSignalStrength() 
+        {
+            return signalStrength;
+        }
+
+        public int getSignalQuality() 
+        {
+            return signalQuality;
+        }
+
+        public int getSymbolQuality() 
+        {    
+            return symbolQuality;
+        }
+
+        public int getPacketsPerSecond() 
+        {
+            return packetsPerSecond;
+        }
+
+        public long getBytesPerSecond() 
+        {
+            return bytesPerSecond;
+        }
+
+    }
     
 }

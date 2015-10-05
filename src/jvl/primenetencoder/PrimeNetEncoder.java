@@ -23,7 +23,7 @@ public class PrimeNetEncoder extends Thread
     * Default values
     */
     public static final int DEFAULT_DISCOVERY_PORT = 8271;
-    private static final String version = "1.2.4";
+    private static final String version = "1.2.5";
     private static final String propertyFileName = "PrimeNetEncoder.properties";
     private static Property props;
     
@@ -51,7 +51,7 @@ public class PrimeNetEncoder extends Thread
     }
     
     public PrimeNetEncoder()
-    {
+    {        
         //Properties properties = this.LoadProperties();
         tuners = new ArrayList<Tuner>();
 
@@ -136,9 +136,12 @@ public class PrimeNetEncoder extends Thread
         {
             if(pEncoder.tuners.get(i).isEnabled())
             {
+                pEncoder.tuners.get(i).setName("Tuner-" + pEncoder.tuners.get(i).getTunerId() + "-" + pEncoder.tuners.get(i).getTunerNumber());
                 pEncoder.tuners.get(i).start();
             }
         }
+        
+        
         
         //Start discovery thread if enabled
         if(this.discoveryEnabled)
@@ -182,6 +185,7 @@ public class PrimeNetEncoder extends Thread
         
         System.out.println("PrimeNetEncover Version: " + PrimeNetEncoder.version);
         System.out.println("Author: jvl711\n");
+        
         
         while(true)
         {    
@@ -293,6 +297,7 @@ public class PrimeNetEncoder extends Thread
                 
         }
         
+        
     }
     
     private void EchoLogs()
@@ -390,7 +395,7 @@ public class PrimeNetEncoder extends Thread
                     //Show tuner bridge statistics
                     if(tuner.getTunerOutput() != null && tuner.getTunerOutput().getTunerBridge() != null)
                     {
-                        System.out.println("\nPerformance Stats");
+                        System.out.println("Performance Stats");
                         System.out.println("\tCurrent packet time (10x): " + tuner.getTunerOutput().getTunerBridge().getPacketTime() + "ms");
                         System.out.println("\tAverage packet receive time (10x): " + tuner.getTunerOutput().getTunerBridge().getAveragePacketReceiveTime() + "ms");
                         System.out.println("\tTotal packets received late (10x): " + tuner.getTunerOutput().getTunerBridge().getTotalLatePackets());
@@ -398,21 +403,32 @@ public class PrimeNetEncoder extends Thread
                         System.out.println("\tFFmpeg input buffer count (STDIN): " + tuner.getTunerOutput().getTunerBridge().getFFmpegOutputBufferCount());
                     }
                     
+                    Tuner.Status status = tuner.getTunerStatus();
+                    
+                    if(status != null)
+                    {
+                        System.out.println("Tuner Status Info");
+                        System.out.println("\tSignal Strength: " + status.getSignalStrength() + "%");
+                        System.out.println("\tSignal Quality: " + status.getSignalQuality() + "%");
+                        System.out.println("\tSymbol Quality: " + status.getSymbolQuality() + "%");
+                        System.out.println("\tData Transfer Rate: " + status.getBytesPerSecond() + "bps");
+                    }
+                    
                     if(tuner.isTunerLocked())
                     {
-                        System.out.println("\nTuner Lock Info");
+                        System.out.println("Tuner Lock Info");
                         System.out.println("\tTuner locked: True");
                         System.out.println("\tlock source: " + tuner.getTunerLockSource());
                     }
                     else
                     {
-                        System.out.println("\nTuner Lock Info");
+                        System.out.println("Tuner Lock Info");
                         System.out.println("\tTuner locked: False");
                     }
                     
                     if(tuner.isTranscodeEnabled())
                     {
-                        System.out.println("\nTranscoding Info");
+                        System.out.println("Transcoding Info");
                         System.out.println("\tTranscoding: Enabled");
                         System.out.println("\tTranscode Bitrate: " + tuner.getAverageBitrate());
                         System.out.println("\tTranscode Scaling: " + tuner.getScaling());
@@ -421,7 +437,7 @@ public class PrimeNetEncoder extends Thread
                     }
                     else
                     {
-                        System.out.println("\nTranscoding Info");
+                        System.out.println("Transcoding Info");
                         System.out.println("\tTranscoding: False");
                     }
                     
@@ -729,7 +745,7 @@ public class PrimeNetEncoder extends Thread
         char temp;
         
         try
-        {
+        {   
             temp = (char)System.in.read();
         
             while(temp != '\n')
@@ -751,7 +767,7 @@ public class PrimeNetEncoder extends Thread
         return command;
     }
     
-    public static void writeLogln(String line, String logname)
+    public synchronized static void writeLogln(String line, String logname) 
     {
         String logFileName = "PrimeNetEncoder.txt";
         DateFormat df = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
@@ -793,4 +809,5 @@ public class PrimeNetEncoder extends Thread
     {
         return PrimeNetEncoder.props;
     }
+    
 }
