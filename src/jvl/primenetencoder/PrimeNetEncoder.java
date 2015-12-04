@@ -172,6 +172,7 @@ public class PrimeNetEncoder extends Thread
         {
             if(pEncoder.tuners.get(i).isEnabled())
             {
+                pEncoder.tuners.get(i).setDaemon(true);
                 pEncoder.tuners.get(i).start();
                 //pEncoder.tuners.get(i).startDiscoveryThread();
             }
@@ -181,6 +182,7 @@ public class PrimeNetEncoder extends Thread
         if(pEncoder.discoveryEnabled)
         {
             pEncoder.discovery = new Discovery(pEncoder.discoveryPort, pEncoder.tuners);
+            pEncoder.discovery.setDaemon(true);
             pEncoder.discovery.start();
         }
         
