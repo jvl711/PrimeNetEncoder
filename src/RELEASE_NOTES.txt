@@ -1,3 +1,8 @@
+VERSION 2.0.0
+1. Added quit command.  This will attempt to exit gracefully if the tuners are not currently recording.
+2. Added an local address override to the properties file.  This is to workaround some issues with certain Linux distros, and possibly machines with multiple IP addresses
+3. Change property mediaserver.transfer default value from true to false.  Some machines seem to be struggling with transferring to sage using this method.
+
 VERSION 1.2.5 (RC1)
 1. Increased UDP receive buffer size to 262140
 2. Added properties for ffmpeg.outputbuffersize, ffmpeg.inputbuffersize and mediaserver.outputbuffersize

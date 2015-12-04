@@ -23,8 +23,9 @@ public class PrimeNetEncoder extends Thread
     * Default values
     */
     public static final int DEFAULT_DISCOVERY_PORT = 8271;
-    private static final String version = "1.2.5";
+    private static final String version = "2.0.0";
     private static final String propertyFileName = "PrimeNetEncoder.properties";
+    private static String bindingAddressOverride = "";
     private static Property props;
     
     private int tunerCount;
@@ -57,7 +58,7 @@ public class PrimeNetEncoder extends Thread
 
         try
         {
-            
+            this.bindingAddressOverride = props.getProperty("bindingaddress.override", "");
             int ffmpegDelay = props.getProperty("ffmpeg.delay", 500);
             int ffmpegProbeSize = props.getProperty("ffmpeg.probesize", Tuner.FFMPEG_DEFAULT_PROBESIZE);
             int ffmpegAnalyzeDuration = props.getProperty("ffmpeg.analyzeduration", Tuner.FFMPGEG_DEFAULT_ANALYZE_DURATION);
@@ -67,7 +68,7 @@ public class PrimeNetEncoder extends Thread
             this.tunerCount = props.getProperty("tuners.count", 3);
             this.discoveryPort = props.getProperty("discovery.port", PrimeNetEncoder.DEFAULT_DISCOVERY_PORT);
             this.discoveryEnabled = props.getProperty("discovery.enabled", true);
-            boolean useMediaServer = props.getProperty("mediaserver.transfer", true);
+            boolean useMediaServer = props.getProperty("mediaserver.transfer", false);
             
             TunerOutput.setFfmpegOutputBuferSize(props.getProperty("ffmpeg.outputbuffersize", TunerOutput.DEFAULT_FFMPEG_OUTPUT_BUFFER_SIZE));
             TunerOutput.setFfmpegInputBuferSize(props.getProperty("ffmpeg.inputbuffersize", TunerOutput.DEFAULT_FFMPEG_INPUT_BUFFER_SIZE));
@@ -137,6 +138,7 @@ public class PrimeNetEncoder extends Thread
             if(pEncoder.tuners.get(i).isEnabled())
             {
                 pEncoder.tuners.get(i).setName("Tuner-" + pEncoder.tuners.get(i).getTunerId() + "-" + pEncoder.tuners.get(i).getTunerNumber());
+                pEncoder.tuners.get(i).setDaemon(true);
                 pEncoder.tuners.get(i).start();
             }
         }
@@ -147,6 +149,7 @@ public class PrimeNetEncoder extends Thread
         if(this.discoveryEnabled)
         {
             discovery = new Discovery(pEncoder.discoveryPort, pEncoder.tuners);
+            discovery.setDaemon(true);
             discovery.start();
             
             //Give discovery thread time to start
@@ -297,7 +300,11 @@ public class PrimeNetEncoder extends Thread
                 
         }
         
-        
+    }
+    
+    public static String GetBindingAddressOverride()
+    {
+        return PrimeNetEncoder.bindingAddressOverride;
     }
     
     private void EchoLogs()

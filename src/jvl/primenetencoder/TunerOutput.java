@@ -530,6 +530,7 @@ public class TunerOutput extends Thread
         
         if(this.tunerBridge != null)
         {
+            this.tunerBridge.setDaemon(true);
             this.tunerBridge.start();
         }
         
@@ -541,6 +542,7 @@ public class TunerOutput extends Thread
         */
         
         this.outputWatcher.setPriority(Thread.MIN_PRIORITY);
+        this.setDaemon(true);
         this.outputWatcher.start();
         
         if(useMediaServer && this.useDirectStream)

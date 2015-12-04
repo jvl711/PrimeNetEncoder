@@ -104,14 +104,22 @@ public class Tuner extends Thread
         this.mediaServerTransfer = useMediaServer;
         this.directStream = useDirectStream;
         
-        try
+        //If there is not a local address defined, than attempt to discover the address
+        if(PrimeNetEncoder.GetBindingAddressOverride().isEmpty())
         {
-            this.localIPAddress = this.localIPAddress = InetAddress.getLocalHost().getHostAddress();
-            PrimeNetEncoder.writeLogln("Setting local IP address to: " + this.localIPAddress, this.logName);
+            try
+            {
+                this.localIPAddress = this.localIPAddress = InetAddress.getLocalHost().getHostAddress();
+                PrimeNetEncoder.writeLogln("Setting local IP address to: " + this.localIPAddress, this.logName);
+            }
+            catch(IOException ex)
+            {
+                PrimeNetEncoder.writeLogln("Error determining IP address of the machine!  This is needed to determine which IP the HDHomeRun needs to connect to send the stream.", this.logName);
+            }
         }
-        catch(IOException ex)
+        else
         {
-            PrimeNetEncoder.writeLogln("Error determining IP address of the machine!  This is needed to determine which IP the HDHomeRun needs to connect to send the stream.", this.logName);
+            this.localIPAddress = PrimeNetEncoder.GetBindingAddressOverride();
         }
     
         //Variables for transcoding
@@ -342,6 +350,7 @@ public class Tuner extends Thread
                 PrimeNetEncoder.writeLogln("Starting TunerOutput thread for Direct Stream to SageTV MediaServer", this.logName);
                 this.tunerOutput = new TunerOutput(this, this.transcoderPort, filePath, this.logName, uploadID, remoteIPAddress);
                 this.tunerOutput.setPriority(Thread.MAX_PRIORITY);
+                this.tunerOutput.setDaemon(true);
                 this.tunerOutput.start();
             }
             else if(this.mediaServerTransfer && this.ffmpegSTDINTransfer)
@@ -349,6 +358,7 @@ public class Tuner extends Thread
                 PrimeNetEncoder.writeLogln("Starting TunerOutput thread for stdin to ffmpeg then stdout to SageTV MediaServer", this.logName);
                 this.tunerOutput = new TunerOutput(this, this.transcoderPort, encoderProcess.getOutputStream(), encoderProcess.getInputStream(), filePath, this.logName, uploadID, remoteIPAddress);
                 this.tunerOutput.setPriority(Thread.MAX_PRIORITY);
+                this.tunerOutput.setDaemon(true);
                 this.tunerOutput.start();
             }
             //Think I might deprecte this option
@@ -365,6 +375,7 @@ public class Tuner extends Thread
                 PrimeNetEncoder.writeLogln("Starting TunerOutput thread for ffmpeg CIFS output to SageTV", this.logName);
                 this.tunerOutput = new TunerOutput(this, this.transcoderPort, encoderProcess.getOutputStream(), encoderProcess.getInputStream(), filePath, logName);
                 this.tunerOutput.setPriority(Thread.MAX_PRIORITY);
+                this.tunerOutput.setDaemon(true);
                 this.tunerOutput.start();
             }
             
