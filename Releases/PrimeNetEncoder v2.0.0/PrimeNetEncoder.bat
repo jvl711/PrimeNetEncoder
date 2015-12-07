@@ -1,0 +1,1 @@
+java -XX:-UseBiasedLocking -XX:NewSize=50M -Xms128m -Xmx256m -jar PrimeNetEncoder.jar

@@ -1,0 +1,53 @@
+VERSION 2.0.0
+1. Added quit command.  This will attempt to exit gracefully if the tuners are not currently recording.
+2. Added an local address override to the properties file.  This is to workaround some issues with certain Linux distros, and possibly machines with multiple IP addresses
+3. Change property mediaserver.transfer default value from true to false.  Some machines seem to be struggling with transferring to sage using this method.
+
+VERSION 1.2.5 (RC1)
+1. Increased UDP receive buffer size to 262140
+2. Added properties for ffmpeg.outputbuffersize, ffmpeg.inputbuffersize and mediaserver.outputbuffersize
+3. Set default size for input/output buffers to 32768
+4. Added signal quality output to the STATUS command
+5. Set a short timeout on UDP read to try and reduce latency
+6. Added a PrimeNetEncoder.bat file with recommended settings to pass to java
+
+VERSION 1.2.4 (BETA)
+1. Fixed mediaserver.transfer = false.
+2. Added the ability for the OutputWatcher to reset the tuner if data is not produced in a timely fashion
+3. Enhanced the exception handling in the TunerOutput thread.  This was causing issues with keeping the UDP port open
+4. Set thread priority to TunerOutput to MAX.  Set thread priority to Watcher to MIN
+5. Cleaned up some of the code that was double buffering streams.  This might have been causing performance issues
+6. Added timeout to the UDP connections
+
+VERSION 1.2.2 (BETA)
+1. Added media server transfer
+2. Using STDIN/STDOUT to transfer data between ffmpeg and PrimeNetEncoder
+3. PrimeNetEncoder is handling Stream from HDHomeRun instead of ffmpeg
+3. Added ffmpeg setting analyzeduration and probesize
+4. Added tuner locking (Note: I do a force unlock when ever I start a new recording)
+5. Modified discovery logic to only respond to discovery requests if there is not an active connection with SageTV server
+
+VERSION 1.1.1
+1. Added proper discovery logic so that Sage can auto discover PrimeNetEncoder tuners
+
+VERSION 1.0.1
+1. Better error handling when binding port is already in use.
+2. Added setting for delay to wait for ffmpeg to fully start.
+3. Added scaling property to the transcoding to allow resizing video
+4. Adding setting for changing codec used for transcoding
+
+VERSION 1.0.0
+1. Initial public release
+
+VERSION 0.0.3
+1. Enhancement:  Added real-time transcoding
+
+VERSION 0.0.2
+1. Bug: The get file size routine has an issue with paths with spaces in them
+2. Bug: Stopping recording does not stop the HDHomeRun if there is a firewall
+3. Enhancement: Changed capture_config in the tuner properties for sage
+4. Enhancement: Updated documentation to add all features and make some areas more clear
+5. Enhancement: Added tuners.count to property file
+
+VERSION 0.0.1
+1. Initial Release
