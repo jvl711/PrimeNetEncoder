@@ -350,7 +350,7 @@ public class Tuner extends Thread
                 PrimeNetEncoder.writeLogln("Starting TunerOutput thread for Direct Stream to SageTV MediaServer", this.logName);
                 this.tunerOutput = new TunerOutput(this, this.transcoderPort, filePath, this.logName, uploadID, remoteIPAddress);
                 this.tunerOutput.setPriority(Thread.MAX_PRIORITY);
-                this.tunerOutput.setDaemon(true);
+                //this.tunerOutput.setDaemon(true);
                 this.tunerOutput.start();
             }
             else if(this.mediaServerTransfer && this.ffmpegSTDINTransfer)
@@ -358,7 +358,7 @@ public class Tuner extends Thread
                 PrimeNetEncoder.writeLogln("Starting TunerOutput thread for stdin to ffmpeg then stdout to SageTV MediaServer", this.logName);
                 this.tunerOutput = new TunerOutput(this, this.transcoderPort, encoderProcess.getOutputStream(), encoderProcess.getInputStream(), filePath, this.logName, uploadID, remoteIPAddress);
                 this.tunerOutput.setPriority(Thread.MAX_PRIORITY);
-                this.tunerOutput.setDaemon(true);
+                //this.tunerOutput.setDaemon(true);
                 this.tunerOutput.start();
             }
             //Think I might deprecte this option
@@ -375,7 +375,7 @@ public class Tuner extends Thread
                 PrimeNetEncoder.writeLogln("Starting TunerOutput thread for ffmpeg CIFS output to SageTV", this.logName);
                 this.tunerOutput = new TunerOutput(this, this.transcoderPort, encoderProcess.getOutputStream(), encoderProcess.getInputStream(), filePath, logName);
                 this.tunerOutput.setPriority(Thread.MAX_PRIORITY);
-                this.tunerOutput.setDaemon(true);
+                //this.tunerOutput.setDaemon(true);
                 this.tunerOutput.start();
             }
             
@@ -740,19 +740,30 @@ public class Tuner extends Thread
     private long getFileSize(String filePath)
     {
         long size = 0;
-        
+        File tempFile;
+                
         if(!this.isMediaServerTransfer())
         {
-            File recording = new File(filePath);
+             tempFile = new File(filePath);
             
-            if(recording.exists())
+            if(tempFile.exists())
             {
-                size = recording.length();
+                size = tempFile.length();
             }
         }
         else
         {
-            size = this.tunerOutput.getFileSize();
+            //Possible work around for media server remuxer
+            tempFile = new File(filePath);
+            
+            if(tempFile.exists())
+            {
+                size = tempFile.length();
+            }
+            else
+            {
+                size = this.tunerOutput.getFileSize();
+            }
         }
         
         return size;
