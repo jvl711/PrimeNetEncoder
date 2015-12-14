@@ -350,7 +350,13 @@ public class Tuner extends Thread
                 PrimeNetEncoder.writeLogln("Starting TunerOutput thread for Direct Stream to SageTV MediaServer", this.logName);
                 this.tunerOutput = new TunerOutput(this, this.transcoderPort, filePath, this.logName, uploadID, remoteIPAddress);
                 this.tunerOutput.setPriority(Thread.MAX_PRIORITY);
-                //this.tunerOutput.setDaemon(true);
+                this.tunerOutput.start();
+            }
+            else if(this.directStream)
+            {
+                PrimeNetEncoder.writeLogln("Starting TunerOutput thread for Direct Stream to SageTV using CIFS", this.logName);
+                this.tunerOutput = new TunerOutput(this, this.transcoderPort, filePath, this.logName);
+                this.tunerOutput.setPriority(Thread.MAX_PRIORITY);
                 this.tunerOutput.start();
             }
             else if(this.mediaServerTransfer && this.ffmpegSTDINTransfer)
@@ -358,7 +364,6 @@ public class Tuner extends Thread
                 PrimeNetEncoder.writeLogln("Starting TunerOutput thread for stdin to ffmpeg then stdout to SageTV MediaServer", this.logName);
                 this.tunerOutput = new TunerOutput(this, this.transcoderPort, encoderProcess.getOutputStream(), encoderProcess.getInputStream(), filePath, this.logName, uploadID, remoteIPAddress);
                 this.tunerOutput.setPriority(Thread.MAX_PRIORITY);
-                //this.tunerOutput.setDaemon(true);
                 this.tunerOutput.start();
             }
             //Think I might deprecte this option

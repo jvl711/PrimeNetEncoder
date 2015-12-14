@@ -58,7 +58,6 @@ public class TunerOutput extends Thread
     //Write data directly to file
     
     //Send data to sage by CIFS instead of media server
-    //TODO: Need to test this before beta release
     public TunerOutput(Tuner tuner, int udpPort, OutputStream processInput, InputStream processOutput, String fileNamePath, String logName)
     {
         this.tuner = tuner;
@@ -79,6 +78,30 @@ public class TunerOutput extends Thread
         this.tunerBridge = new TunerBridge(this, this.processInput, this.updPort, this.logName);
         this.tunerBridge.setName("TunerBridge-" + this.tuner.getTunerName());
         PrimeNetEncoder.writeLogln("Tuner output thread HDHomeRun(UDP) -> PrimeNetEncoder(STDIN) -> ffmpeg(STDOUT) -> PrimeNetEncoder -> File(CIFS/SMB)", this.logName);
+    }
+    
+    //Direct write to from HDHomeRun to SageTV using CIFS
+    public TunerOutput(Tuner tuner, int udpPort, String fileNamePath, String logName)
+    {
+        this.tuner = tuner;
+        this.fileNamePath = fileNamePath;
+        this.logName = logName;
+        this.keepProcessing = true;
+        this.useMediaServer = false;
+        this.useDirectStream = true;
+        this.useSTDINStream = false;
+        
+        this.updPort = udpPort;
+        this.fileSize = 0;
+        this.uploadID = "";
+        this.processOutput = null;
+        this.processInput = null;
+        
+        this.outputWatcher = new TunerOutputWatcher(this);
+        this.outputWatcher.setName("OutputWatcher-" + this.tuner.getTunerName());
+        this.tunerBridge = new TunerBridge(this, this.processInput, this.updPort, this.logName);
+        this.tunerBridge.setName("TunerBridge-" + this.tuner.getTunerName());
+        PrimeNetEncoder.writeLogln("Tuner output thread HDHomeRun(UDP) -> PrimeNetEncoder -> File(CIFS/SMB)", this.logName);
     }
     
     //Direct write to from HDHomeRun to SageTV Media Server
@@ -356,6 +379,71 @@ public class TunerOutput extends Thread
         
     }
     
+    private void sendToFileDirect()
+    {
+        FileOutputStream outputFile = null;
+        DatagramSocket socket = null;
+        
+        try 
+        {   
+            
+            outputFile = new FileOutputStream(new File(this.fileNamePath));
+            
+            socket = new DatagramSocket(this.updPort);
+            DatagramPacket packet = new DatagramPacket(new byte[TunerOutput.getUDPPacketSize()], TunerOutput.getUDPPacketSize());
+            
+            socket.setReceiveBufferSize(65535);
+            socket.setSoTimeout(12000); //TODO: Set a global timeout for the UDP
+            
+            socket.receive(packet);
+            
+            while (packet.getLength() > 0 && keepProcessing) 
+            {    
+                fileSize += packet.getLength();
+                outputFile.write(packet.getData());
+                //TODO:  Evaluate if we need the flush command
+
+                socket.receive(packet);
+            }
+                        
+        } 
+        catch (IOException ex) 
+        {
+            PrimeNetEncoder.writeLogln("Unhandled Exception writing stream to MediaServer: " + ex.getMessage(), this.logName);
+        }
+        finally
+        {
+            if(socket != null)
+            {
+                try 
+                {
+                    socket.close(); 
+                } 
+                catch (Exception ex) { }
+                socket = null;
+            }
+            if(mediaServerOutput != null)
+            {
+                try 
+                {
+                    mediaServerOutput.close(); 
+                } 
+                catch (IOException ex) { }
+                mediaServerOutput = null;
+            }
+            if(outputFile != null)
+            {
+                try 
+                {
+                    outputFile.close(); 
+                } 
+                catch (IOException ex) { }
+                outputFile = null;
+            }
+            PrimeNetEncoder.writeLogln("TunerOutput thread exited", logName);
+        }
+    }
+    
     private void sendToFile()
     {
         FileOutputStream outputFile = null;
@@ -556,7 +644,8 @@ public class TunerOutput extends Thread
         else if(this.useDirectStream)
         {
             //TODO:  Create direct stream to file option
-            throw new RuntimeException("Direct stream to file is not currently supported");
+            //throw new RuntimeException("Direct stream to file is not currently supported");
+            this.sendToFileDirect();
         }
         else
         {

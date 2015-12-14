@@ -1,3 +1,6 @@
+VERSION 2.0.1
+1. Added a direct stream to file for testing purposes.
+
 VERSION 2.0.0
 1. Added quit command.  This will attempt to exit gracefully if the tuners are not currently recording.
 2. Added an local address override to the properties file.  This is to workaround some issues with certain Linux distros, and possibly machines with multiple IP addresses
