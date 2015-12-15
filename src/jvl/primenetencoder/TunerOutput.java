@@ -23,9 +23,9 @@ import jvl.io.AdvancedOutputStream;
  */
 public class TunerOutput extends Thread
 {
-    public static final int DEFAULT_FFMPEG_INPUT_BUFFER_SIZE = 32768;
-    public static final int DEFAULT_FFMPEG_OUTPUT_BUFFER_SIZE = 32768;
-    public static final int DEFAULT_MEDIASERVER_OUTPUT_BUFFER_SIZE = 32768;
+    public static final int DEFAULT_FFMPEG_INPUT_BUFFER_SIZE = 8192;
+    public static final int DEFAULT_FFMPEG_OUTPUT_BUFFER_SIZE = 8192;
+    public static final int DEFAULT_MEDIASERVER_OUTPUT_BUFFER_SIZE = 8192;
     public static final int DEFAULT_MEDIASERVER_SEND_SIZE = 1024;
     public static final int DEFAULT_UDP_PACKET_SIZE = 1500;
     
@@ -99,8 +99,8 @@ public class TunerOutput extends Thread
         
         this.outputWatcher = new TunerOutputWatcher(this);
         this.outputWatcher.setName("OutputWatcher-" + this.tuner.getTunerName());
-        this.tunerBridge = new TunerBridge(this, this.processInput, this.updPort, this.logName);
-        this.tunerBridge.setName("TunerBridge-" + this.tuner.getTunerName());
+        //this.tunerBridge = new TunerBridge(this, this.processInput, this.updPort, this.logName);
+        //this.tunerBridge.setName("TunerBridge-" + this.tuner.getTunerName());
         PrimeNetEncoder.writeLogln("Tuner output thread HDHomeRun(UDP) -> PrimeNetEncoder -> File(CIFS/SMB)", this.logName);
     }
     
@@ -158,12 +158,12 @@ public class TunerOutput extends Thread
     {
         this.keepProcessing = false;
         
-        if(this.outputWatcher.isAlive())
+        if(this.outputWatcher != null && this.outputWatcher.isAlive())
         {
             this.outputWatcher.stopProcessing();
         }
         
-        if(this.tunerBridge.isAlive())
+        if(this.tunerBridge != null && this.tunerBridge.isAlive())
         {
             this.tunerBridge.stopProcessing();
         }
@@ -400,9 +400,9 @@ public class TunerOutput extends Thread
             while (packet.getLength() > 0 && keepProcessing) 
             {    
                 fileSize += packet.getLength();
-                outputFile.write(packet.getData());
+                outputFile.write(packet.getData(), 0, packet.getLength());
                 //TODO:  Evaluate if we need the flush command
-
+                outputFile.flush();
                 socket.receive(packet);
             }
                         

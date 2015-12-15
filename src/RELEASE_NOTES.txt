@@ -1,5 +1,9 @@
 VERSION 2.0.1
-1. Added a direct stream to file for testing purposes.
+1. Change default buffer size to 8192
+2. Added a direct stream to file for testing purposes.
+
+VERSION 2.0.1
+
 
 VERSION 2.0.0
 1. Added quit command.  This will attempt to exit gracefully if the tuners are not currently recording.
