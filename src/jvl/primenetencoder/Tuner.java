@@ -11,7 +11,19 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.InetAddress;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
+
+/*
+* TODO: Add a watcher thread to confirm that a size is still being requested by
+* the server on a reasonable amount of time.
+* 
+* Also will check to make sure the ffmpeg process is still alive
+* 
+* 
+*/
 
 public class Tuner extends Thread
 {
@@ -37,6 +49,7 @@ public class Tuner extends Thread
     private String localIPAddress;
     private String remoteIPAddress;
     private String logName;
+    private long lastFileSizeCheck = 0;
     
     /*
     * Variables for tuner locking
@@ -78,10 +91,12 @@ public class Tuner extends Thread
     private String transcodePreset;
     private String transcoderCodec;
     private String scaling;
+    private ArrayList<PathMapping> pathMappings;
     
     
     public Tuner(int tunerIndex, String name, String id, int tunerNumber, int port, int transcoderPort
-            , boolean enabled, String hdhomerunconfigPath, String ffmpegPath, boolean useMediaServer, boolean useDirectStream)
+            , boolean enabled, String hdhomerunconfigPath, String ffmpegPath, boolean useMediaServer, boolean useDirectStream
+            , ArrayList<PathMapping> pathMappings)
     {
         this.tunerIndex = tunerIndex;
         this.name = name;
@@ -103,6 +118,8 @@ public class Tuner extends Thread
         
         this.mediaServerTransfer = useMediaServer;
         this.directStream = useDirectStream;
+        
+        this.pathMappings = pathMappings;
         
         //If there is not a local address defined, than attempt to discover the address
         if(PrimeNetEncoder.GetBindingAddressOverride().isEmpty())
@@ -150,6 +167,11 @@ public class Tuner extends Thread
             PrimeNetEncoder.writeLogln("Error binding (" + this.getTunerId()+ " " + this.getTunerNumber() + "): " + ex.getMessage(), this.logName);
             listening = false;
         }
+        
+        //Start the watcher thread
+        TunerConnectionWatcher watcher = new TunerConnectionWatcher(this);
+        watcher.start();
+        
         
         while(listening)
         {
@@ -212,6 +234,14 @@ public class Tuner extends Thread
                                 String filePath = parts[3];
                                 String quality = parts[4];
 
+                                for(int i = 0; i < pathMappings.size(); i++)
+                                {
+                                    if(pathMappings.get(i).matches(parts[3]))
+                                    {
+                                        filePath = pathMappings.get(i).getConvertedPath(parts[3]);
+                                    }
+                                }
+                                
                                 this.startRecording(channel, null, filePath, quality);
                             }
                         }
@@ -232,6 +262,14 @@ public class Tuner extends Thread
                                 String filePath = parts[4];
                                 String quality = parts[5];
 
+                                for(int i = 0; i < pathMappings.size(); i++)
+                                {
+                                    if(pathMappings.get(i).matches(parts[4]))
+                                    {
+                                        filePath = pathMappings.get(i).getConvertedPath(parts[4]);
+                                    }
+                                }
+                                
                                 this.startRecording(channel, uploadID, filePath, quality);
                             }
                         }
@@ -249,6 +287,17 @@ public class Tuner extends Thread
                     {                
                         String filePath  = command.replace("GET_FILE_SIZE ", "");
 
+                        for(int i = 0; i < pathMappings.size(); i++)
+                        {
+                            if(pathMappings.get(i).matches(filePath))
+                            {
+                                filePath = pathMappings.get(i).getConvertedPath(filePath);
+                            }
+                        }
+                 
+                        //System.out.println("Getting size...");
+                        this.lastFileSizeCheck = System.currentTimeMillis();
+                        
                         long size = this.getFileSize(filePath);
                         
                         output.write(size + "\r\n");
@@ -341,7 +390,8 @@ public class Tuner extends Thread
                 }
                 
                 String[] transcoderCmd = getTranscodeCmd(input, output);
-                encoderProcess = Runtime.getRuntime().exec(transcoderCmd);
+                //encoderProcess = Runtime.getRuntime().exec(transcoderCmd);
+                encoderProcess = new ProcessBuilder().command(transcoderCmd).start();
                 
             }
 
@@ -382,6 +432,7 @@ public class Tuner extends Thread
                 this.tunerOutput.setPriority(Thread.MAX_PRIORITY);
                 //this.tunerOutput.setDaemon(true);
                 this.tunerOutput.start();
+                
             }
             
             //Give a little time for the port to open
@@ -414,6 +465,8 @@ public class Tuner extends Thread
         PrimeNetEncoder.writeLogln("-------------------------------------------------------------------------------", this.logName);
         PrimeNetEncoder.writeLogln("Stopping Recording: " + this.getTunerId()+ " " + this.getTunerNumber(), this.logName);
         PrimeNetEncoder.writeLogln("-------------------------------------------------------------------------------", this.logName);
+        
+        this.lastFileSizeCheck = 0;
         
         if(isRecording())
         {
@@ -746,7 +799,7 @@ public class Tuner extends Thread
     {
         long size = 0;
         File tempFile;
-                
+        
         if(!this.isMediaServerTransfer())
         {
              tempFile = new File(filePath);
@@ -1052,6 +1105,30 @@ public class Tuner extends Thread
         return tunerOutput;
     }
 
+    public boolean isEncodeProcessAlive()
+    {
+        boolean isAlive = false;
+        
+        if(this.encoderProcess != null)
+        {
+            try 
+            { 
+                isAlive = !this.encoderProcess.waitFor(100, TimeUnit.MILLISECONDS);  
+            }
+            catch(NoSuchMethodError ex)
+            {
+                //System.out.println("Older version of Java :(... Assuming process is still running");
+                isAlive = true;
+            }
+            catch(Exception ex) 
+            {
+                System.out.println("Unknown error checking process status!");
+                ex.printStackTrace();
+            }
+        }
+        
+        return isAlive;
+    }
     
     public class Status
     {
@@ -1095,6 +1172,66 @@ public class Tuner extends Thread
             return bytesPerSecond;
         }
 
+    }
+    
+    private class TunerConnectionWatcher extends Thread
+    {
+        private Tuner tuner;
+        private static final int CHECK_INTERVAL = 60000; 
+        
+        
+        public TunerConnectionWatcher(Tuner tuner)
+        {
+            this.tuner = tuner;
+        }
+        
+        @Override
+        public void run()
+        {
+            while(tuner.isAlive())
+            {
+                try{ Thread.sleep(CHECK_INTERVAL); }catch(Exception ex) {}
+                
+                if(this.tuner.encoderProcess != null)
+                {
+                    boolean isAlive = this.tuner.isEncodeProcessAlive();
+                    
+                    if(this.tuner.isRecording() && this.tuner.isFfmpegUseSTDIN() && !isAlive)
+                    {
+                        PrimeNetEncoder.writeLogln("Encoder process has stopped durring recording process!", this.tuner.logName);
+                        System.out.println("Encoder process has stopped durring recording process! Tuner Number:" + this.tuner.getTunerNumber());
+                        PrimeNetEncoder.writeLogln("Premptively stoping recording!", this.tuner.logName);
+                        this.tuner.stopRecording();
+                    }
+                    else if(this.tuner.isRecording() && this.tuner.isFfmpegUseSTDIN() && isAlive)
+                    {
+                        //System.out.println("Encoder Process Seems OK!");
+                    }
+                }
+                
+                
+                if(this.tuner.lastFileSizeCheck != 0) //Recording is still initializing, or has not had file size checked
+                {
+                    if(this.tuner.isRecording() && this.tuner.isFfmpegUseSTDIN())
+                    {
+                        //If the server has not checked for file size in the last iteraction, assume issue???
+                        if(this.tuner.lastFileSizeCheck < (System.currentTimeMillis() - CHECK_INTERVAL))
+                        {
+                            System.out.println("LastCheckTime: " + this.tuner.lastFileSizeCheck);
+                            System.out.println("CheckTime: " + (System.currentTimeMillis() - CHECK_INTERVAL));
+                            PrimeNetEncoder.writeLogln("Sage has not asked for a file size!", this.tuner.logName);
+                            System.out.println("Sage has not asked for a file size! Tuner Number:" + this.tuner.getTunerNumber());
+                            this.tuner.stopRecording();
+                            //TODO:  Think about closing the conection with SageTV.  Make it reastablish...
+                        }
+                        else
+                        {
+                            //System.out.println("SageTV Connection Seems OK!");
+                        }
+                    }
+                }
+            }
+        }
     }
     
 }

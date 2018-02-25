@@ -23,7 +23,7 @@ public class PrimeNetEncoder extends Thread
     * Default values
     */
     public static final int DEFAULT_DISCOVERY_PORT = 8271;
-    private static final String version = "2.0.1";
+    private static final String version = "2.0.4";
     private static final String propertyFileName = "PrimeNetEncoder.properties";
     private static String bindingAddressOverride = "";
     private static Property props;
@@ -35,6 +35,7 @@ public class PrimeNetEncoder extends Thread
     private String hdhomerunconfigPath;
     private String ffmpegPath;
     private Discovery discovery;
+    private ArrayList<PathMapping> pathMappings;
     
     private static boolean echoLogs = false;
     
@@ -55,6 +56,7 @@ public class PrimeNetEncoder extends Thread
     {        
         //Properties properties = this.LoadProperties();
         tuners = new ArrayList<Tuner>();
+        pathMappings = new ArrayList<PathMapping>();
 
         try
         {
@@ -74,6 +76,27 @@ public class PrimeNetEncoder extends Thread
             TunerOutput.setFfmpegInputBuferSize(props.getProperty("ffmpeg.inputbuffersize", TunerOutput.DEFAULT_FFMPEG_INPUT_BUFFER_SIZE));
             TunerOutput.setMediaServerOutputBufferSize(props.getProperty("mediaserver.outputbuffersize", TunerOutput.DEFAULT_MEDIASERVER_OUTPUT_BUFFER_SIZE));
 
+            String paths = props.getProperty("paths.mappings", "");
+            
+            if(paths.length() > 0)
+            {
+                String [] pathPairs = paths.split(";");
+                
+                for(int i = 0; i < pathPairs.length; i++)
+                {
+                    String [] pathPair = pathPairs[i].split(",");                    
+                    
+                    if(pathPair.length == 2)
+                    {
+                        System.out.println("Adding new path pair:");
+                        System.out.println("source: " + pathPair[0]);
+                        System.out.println("dest: " + pathPair[1]);
+                        
+                        this.pathMappings.add(new PathMapping(pathPair[0], pathPair[1]));
+                    }
+                }
+            }
+            
             for(int i = 0; i < tunerCount; i++)
             {
                 Tuner tuner;
@@ -95,7 +118,7 @@ public class PrimeNetEncoder extends Thread
                 String transcodePreset =  props.getProperty("tuner" + i + ".transcode.preset", "veryfast");
                 String transcodeCodec = props.getProperty("tuner" + i + ".transcode.codec", "libx264");
                 tuner = new Tuner(i, name, id, number, port, transcoderPort, enabled
-                                , this.hdhomerunconfigPath, this.ffmpegPath, useMediaServer, useDirectStream);
+                                , this.hdhomerunconfigPath, this.ffmpegPath, useMediaServer, useDirectStream, this.pathMappings);
 
                 tuner.setTranscodeEnabled(transcodeEnabled);
                 tuner.setDeinterlaceEnabled(transcodeDeinterlace);
