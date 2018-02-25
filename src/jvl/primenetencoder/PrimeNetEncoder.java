@@ -23,7 +23,7 @@ public class PrimeNetEncoder extends Thread
     * Default values
     */
     public static final int DEFAULT_DISCOVERY_PORT = 8271;
-    private static final String version = "2.0.4";
+    private static final String version = "2.0.5";
     private static final String propertyFileName = "PrimeNetEncoder.properties";
     private static String bindingAddressOverride = "";
     private static Property props;

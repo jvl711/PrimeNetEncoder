@@ -570,7 +570,7 @@ public class Tuner extends Thread
         {
             PrimeNetEncoder.writeLogln("Passing stream to SageTV unaltered (ffmpeg stream copy)", this.logName);
             
-            transcoderCmd = new String []{this.ffmpegPath, "-y", "-v", "quiet","-analyzeduration", this.getFfmpegAnalzyeDuration() + "", "-probesize", this.getFfmpegProbeSize() + "", "-i", input, "-f", "mpegts", "-vcodec", "copy", "-acodec", "copy", output};
+            transcoderCmd = new String []{this.ffmpegPath, "-y", "-v", "quiet","-analyzeduration", this.getFfmpegAnalzyeDuration() + "", "-probesize", this.getFfmpegProbeSize() + "", "-i", input, "-f", "mpegts", "-c:v", "copy", "-c:a", "copy", "-c:s", "copy", output};
             
         }
         
